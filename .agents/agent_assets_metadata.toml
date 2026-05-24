@@ -1,0 +1,32 @@
+uploads = []
+outputs = []
+
+[[generated]]
+id = "Y6LGSTBSYxOxs6v-zGjX8"
+uri = "file://artifacts/urlas/public/hero.png"
+type = "image"
+title = "cinematic coffee shop hero"
+
+[[generated]]
+id = "hhyiG3Ym98e6NVqPJy2NL"
+uri = "file://artifacts/urlas/public/about.png"
+type = "image"
+title = "barista pouring latte art"
+
+[[generated]]
+id = "ERJiNOmdGTZQAVUA0ys1T"
+uri = "file://artifacts/urlas/public/gallery1.png"
+type = "image"
+title = "flat lay coffee beans"
+
+[[generated]]
+id = "Orsv60_alN4PrAy41ZACd"
+uri = "file://artifacts/urlas/public/gallery2.png"
+type = "image"
+title = "close up cappuccino"
+
+[[generated]]
+id = "qUkpoo88PYfhNC35ZY87i"
+uri = "file://artifacts/urlas/public/gallery3.png"
+type = "image"
+title = "cozy cafe corner"
