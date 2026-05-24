@@ -1,6 +1,6 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { motion, useScroll, useTransform } from "framer-motion";
-import { MapPin, Clock, Mail, Instagram, Twitter, Phone, ChevronDown } from "lucide-react";
+import { MapPin, Clock, Mail, Instagram, Phone, ChevronDown } from "lucide-react";
 import { Link } from "wouter";
 import { useLang } from "@/context/LanguageContext";
 
@@ -32,9 +32,7 @@ function SideNav({ active }: { active: SectionId }) {
           <button
             data-testid={`dot-nav-${id}`}
             className={`nav-dot ${active === id ? "active" : ""}`}
-            onClick={() => {
-              document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
-            }}
+            onClick={() => document.getElementById(id)?.scrollIntoView({ behavior: "smooth" })}
             aria-label={labels[id]}
           />
           <span className="nav-dot-label">{labels[id]}</span>
@@ -49,10 +47,9 @@ export default function Home() {
   const [scrolled, setScrolled] = useState(false);
   const [activeSection, setActiveSection] = useState<SectionId>("hero");
 
-  const heroRef = useRef<HTMLDivElement>(null);
   const { scrollY } = useScroll();
+  const heroScale = useTransform(scrollY, [0, 600], [1, 1.08]);
   const heroOpacity = useTransform(scrollY, [0, 500], [1, 0]);
-  const heroScale = useTransform(scrollY, [0, 500], [1, 1.06]);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 60);
@@ -101,66 +98,54 @@ export default function Home() {
             <button
               data-testid="nav-about"
               onClick={() => document.getElementById("about")?.scrollIntoView({ behavior: "smooth" })}
-              className="hover:text-sage transition-colors"
+              className="hover:text-olive transition-colors"
             >
               {t.nav.about}
             </button>
             <Link
               data-testid="nav-menu"
               href="/menu"
-              className="hover:text-sage transition-colors"
+              className="hover:text-olive transition-colors"
             >
               {t.nav.menu}
             </Link>
             <button
               data-testid="nav-visit"
               onClick={() => document.getElementById("visit")?.scrollIntoView({ behavior: "smooth" })}
-              className="hover:text-sage transition-colors"
+              className="hover:text-olive transition-colors"
             >
               {t.nav.visit}
             </button>
           </div>
 
-          <div className="flex items-center gap-3">
-            <button
-              data-testid="lang-toggle"
-              onClick={() => setLang(lang === "tr" ? "en" : "tr")}
-              className={`text-[11px] tracking-[0.16em] uppercase font-sans font-medium px-3 py-1.5 border transition-all duration-300 ${
-                scrolled
-                  ? "border-border text-foreground hover:border-sage hover:text-sage"
-                  : "border-white/50 text-white hover:border-white"
-              }`}
-            >
-              {lang === "tr" ? "EN" : "TR"}
-            </button>
-            <Link
-              data-testid="nav-order"
-              href="/menu"
-              className={`px-6 py-2.5 text-[11px] tracking-[0.16em] uppercase font-sans font-medium transition-all duration-300 ${
-                scrolled
-                  ? "bg-foreground text-background hover:bg-sage hover:text-white"
-                  : "bg-white text-foreground hover:bg-sage hover:text-white"
-              }`}
-            >
-              {t.nav.order}
-            </Link>
-          </div>
+          <button
+            data-testid="lang-toggle"
+            onClick={() => setLang(lang === "tr" ? "en" : "tr")}
+            className={`text-[11px] tracking-[0.16em] uppercase font-sans font-medium px-3 py-1.5 border transition-all duration-300 ${
+              scrolled
+                ? "border-border text-foreground hover:border-olive hover:text-olive"
+                : "border-white/50 text-white hover:border-white"
+            }`}
+          >
+            {lang === "tr" ? "EN" : "TR"}
+          </button>
         </div>
       </nav>
 
       {/* Hero */}
       <section id="hero" className="relative h-screen w-full flex items-end justify-center overflow-hidden">
         <motion.div
-          ref={heroRef}
-          style={{ opacity: heroOpacity, scale: heroScale }}
+          style={{ scale: heroScale, opacity: heroOpacity }}
           className="absolute inset-0 z-0"
         >
           <img
-            src="/hero.png"
+            src="/cafe-interior.jpg"
             alt="Urla's Coffee Shop"
             className="w-full h-full object-cover"
           />
-          <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/20 to-black/70" />
+          {/* Night shadow effect — heavy dark gradient overlay */}
+          <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/50 to-black/80" />
+          <div className="absolute inset-0 bg-black/30" />
         </motion.div>
 
         <motion.div
@@ -169,29 +154,20 @@ export default function Home() {
           variants={stagger}
           className="relative z-10 text-center text-white px-6 pb-28 max-w-4xl"
         >
-          <motion.p
-            variants={fadeUp}
-            className="font-sans text-[11px] tracking-[0.3em] uppercase mb-6 text-white/70"
-          >
-            Urla, İzmir
+          <motion.p variants={fadeUp} className="font-sans text-[11px] tracking-[0.3em] uppercase mb-6 text-white/60">
+            Kağıthane, İstanbul
           </motion.p>
-          <motion.h1
-            variants={fadeUp}
-            className="font-serif text-7xl md:text-8xl lg:text-[9rem] mb-8 tracking-tight leading-none"
-          >
+          <motion.h1 variants={fadeUp} className="font-serif text-7xl md:text-8xl lg:text-[9rem] mb-8 tracking-tight leading-none">
             Urla's
           </motion.h1>
-          <motion.p
-            variants={fadeUp}
-            className="font-sans text-base md:text-lg font-light tracking-wide max-w-xl mx-auto text-white/80 leading-relaxed"
-          >
+          <motion.p variants={fadeUp} className="font-sans text-base md:text-lg font-light tracking-wide max-w-xl mx-auto text-white/75 leading-relaxed">
             {t.hero.tagline}
           </motion.p>
           <motion.div variants={fadeUp} className="mt-12">
             <button
               data-testid="hero-discover"
               onClick={() => document.getElementById("about")?.scrollIntoView({ behavior: "smooth" })}
-              className="flex flex-col items-center gap-2 mx-auto text-white/60 hover:text-white transition-colors text-[11px] tracking-[0.2em] uppercase"
+              className="flex flex-col items-center gap-2 mx-auto text-white/50 hover:text-white transition-colors text-[11px] tracking-[0.2em] uppercase"
             >
               <span>{t.hero.discover}</span>
               <ChevronDown className="w-4 h-4 animate-bounce" strokeWidth={1.5} />
@@ -210,7 +186,7 @@ export default function Home() {
               viewport={{ once: true, margin: "-80px" }}
               variants={stagger}
             >
-              <motion.p variants={fadeUp} className="font-sans text-[11px] tracking-[0.28em] uppercase text-sage mb-5">
+              <motion.p variants={fadeUp} className="font-sans text-[11px] tracking-[0.28em] uppercase text-olive mb-5">
                 {lang === "tr" ? "Hikayemiz" : "Our Story"}
               </motion.p>
               <motion.h2 variants={fadeUp} className="font-serif text-5xl md:text-6xl mb-10 leading-tight text-foreground">
@@ -224,7 +200,7 @@ export default function Home() {
                 <Link
                   data-testid="about-menu-link"
                   href="/menu"
-                  className="inline-flex items-center gap-3 text-[11px] tracking-[0.22em] uppercase font-sans font-medium text-foreground border-b border-foreground/30 pb-1 hover:border-sage hover:text-sage transition-all duration-300"
+                  className="inline-flex items-center gap-3 text-[11px] tracking-[0.22em] uppercase font-sans font-medium text-foreground border-b border-foreground/30 pb-1 hover:border-olive hover:text-olive transition-all duration-300"
                 >
                   {t.nav.menu}
                   <span className="text-xs">→</span>
@@ -241,13 +217,12 @@ export default function Home() {
             >
               <div className="aspect-[4/5] w-full overflow-hidden">
                 <img
-                  src="/about.png"
-                  alt={lang === "tr" ? "Barista latte art yapıyor" : "Barista pouring latte art"}
+                  src="/about-coffee.jpg"
+                  alt={lang === "tr" ? "Espresso fincanları" : "Espresso cups"}
                   className="w-full h-full object-cover"
                 />
               </div>
-              {/* green accent border */}
-              <div className="absolute -bottom-4 -right-4 w-2/3 h-2/3 border border-sage/25 pointer-events-none z-[-1]" />
+              <div className="absolute -bottom-4 -right-4 w-2/3 h-2/3 border border-olive/25 pointer-events-none z-[-1]" />
             </motion.div>
           </div>
         </div>
@@ -263,7 +238,7 @@ export default function Home() {
             variants={stagger}
             className="mb-16"
           >
-            <motion.p variants={fadeUp} className="font-sans text-[11px] tracking-[0.28em] uppercase text-sage mb-4">
+            <motion.p variants={fadeUp} className="font-sans text-[11px] tracking-[0.28em] uppercase text-olive mb-4">
               {t.gallery.subtitle}
             </motion.p>
             <motion.h2 variants={fadeUp} className="font-serif text-5xl md:text-6xl text-foreground">
@@ -280,22 +255,22 @@ export default function Home() {
           >
             <motion.div variants={fadeUp} className="col-span-12 md:col-span-7 h-[480px] overflow-hidden group">
               <img
-                src="/gallery1.png"
-                alt={lang === "tr" ? "Kahve çekirdekleri" : "Coffee beans"}
+                src="/gallery-latte.jpg"
+                alt={lang === "tr" ? "Latte art" : "Latte art"}
                 className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105"
               />
             </motion.div>
             <motion.div variants={fadeUp} className="col-span-12 md:col-span-5 h-[480px] overflow-hidden group">
               <img
-                src="/gallery2.png"
-                alt={lang === "tr" ? "Cappuccino" : "Cappuccino art"}
+                src="/gallery-cake.jpg"
+                alt={lang === "tr" ? "Pasta dilimi" : "Cake slice"}
                 className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105"
               />
             </motion.div>
             <motion.div variants={fadeUp} className="col-span-12 h-[320px] overflow-hidden group">
               <img
-                src="/gallery3.png"
-                alt={lang === "tr" ? "Kafe atmosferi" : "Café atmosphere"}
+                src="/gallery-mugs.jpg"
+                alt={lang === "tr" ? "Kahve kupaları" : "Coffee mugs"}
                 className="w-full h-full object-cover object-center transition-transform duration-1000 group-hover:scale-105"
               />
             </motion.div>
@@ -312,7 +287,7 @@ export default function Home() {
             viewport={{ once: true }}
             variants={stagger}
           >
-            <motion.p variants={fadeUp} className="font-sans text-[11px] tracking-[0.28em] uppercase text-sage mb-5">
+            <motion.p variants={fadeUp} className="font-sans text-[11px] tracking-[0.28em] uppercase text-olive mb-5">
               {lang === "tr" ? "Adres & Saatler" : "Location & Hours"}
             </motion.p>
             <motion.h2 variants={fadeUp} className="font-serif text-5xl md:text-6xl mb-20 text-foreground">
@@ -324,8 +299,8 @@ export default function Home() {
               className="grid grid-cols-1 md:grid-cols-3 gap-0 border border-border/60"
             >
               <motion.div variants={fadeUp} className="p-10 md:border-r border-border/60">
-                <div className="w-8 h-px bg-sage mb-8" />
-                <MapPin className="w-5 h-5 mb-5 text-sage" strokeWidth={1.5} />
+                <div className="w-8 h-px bg-olive mb-8" />
+                <MapPin className="w-5 h-5 mb-5 text-olive" strokeWidth={1.5} />
                 <h3 className="font-serif text-xl mb-4 text-foreground">{t.visit.location}</h3>
                 <p className="font-sans text-muted-foreground text-sm leading-relaxed whitespace-pre-line">
                   {t.visit.address}
@@ -333,8 +308,8 @@ export default function Home() {
               </motion.div>
 
               <motion.div variants={fadeUp} className="p-10 md:border-r border-border/60 border-t md:border-t-0">
-                <div className="w-8 h-px bg-sage mb-8" />
-                <Clock className="w-5 h-5 mb-5 text-sage" strokeWidth={1.5} />
+                <div className="w-8 h-px bg-olive mb-8" />
+                <Clock className="w-5 h-5 mb-5 text-olive" strokeWidth={1.5} />
                 <h3 className="font-serif text-xl mb-4 text-foreground">{t.visit.hours}</h3>
                 <p className="font-sans text-muted-foreground text-sm leading-relaxed">
                   {t.visit.weekdays}<br />
@@ -343,8 +318,8 @@ export default function Home() {
               </motion.div>
 
               <motion.div variants={fadeUp} className="p-10 border-t md:border-t-0">
-                <div className="w-8 h-px bg-sage mb-8" />
-                <Mail className="w-5 h-5 mb-5 text-sage" strokeWidth={1.5} />
+                <div className="w-8 h-px bg-olive mb-8" />
+                <Mail className="w-5 h-5 mb-5 text-olive" strokeWidth={1.5} />
                 <h3 className="font-serif text-xl mb-4 text-foreground">{t.visit.contact}</h3>
                 <p className="font-sans text-muted-foreground text-sm leading-relaxed">
                   {t.visit.email}<br />
@@ -361,30 +336,24 @@ export default function Home() {
         <div className="max-w-6xl mx-auto">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-10 pb-10 border-b border-background/10">
             <div>
-              <h2 className="font-serif text-3xl font-bold mb-2 text-primary">Urla's</h2>
+              <h2 className="font-serif text-3xl font-bold mb-2 text-olive">Urla's</h2>
               <p className="font-sans text-background/50 text-sm tracking-wide">{t.footer.tagline}</p>
             </div>
             <div className="flex items-center gap-5">
               <a
                 data-testid="footer-instagram"
-                href="#"
-                className="text-background/50 hover:text-sage transition-colors"
+                href="https://www.instagram.com/urlascoffee/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-background/50 hover:text-olive transition-colors"
                 aria-label="Instagram"
               >
                 <Instagram className="w-5 h-5" strokeWidth={1.5} />
               </a>
               <a
-                data-testid="footer-twitter"
-                href="#"
-                className="text-background/50 hover:text-sage transition-colors"
-                aria-label="Twitter"
-              >
-                <Twitter className="w-5 h-5" strokeWidth={1.5} />
-              </a>
-              <a
                 data-testid="footer-phone"
-                href={`tel:${t.visit.phone}`}
-                className="text-background/50 hover:text-sage transition-colors"
+                href="tel:+905346962033"
+                className="text-background/50 hover:text-olive transition-colors"
                 aria-label="Phone"
               >
                 <Phone className="w-5 h-5" strokeWidth={1.5} />
@@ -396,7 +365,7 @@ export default function Home() {
               © {new Date().getFullYear()} Urla's Coffee Shop. {t.footer.rights}
             </p>
             <div className="flex gap-8 text-[11px] tracking-[0.15em] uppercase text-background/30 font-sans">
-              <Link href="/menu" className="hover:text-sage transition-colors">
+              <Link href="/menu" className="hover:text-olive transition-colors">
                 {t.nav.menu}
               </Link>
             </div>

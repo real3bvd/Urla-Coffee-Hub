@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Link } from "wouter";
-import { ArrowLeft, Instagram, Twitter } from "lucide-react";
+import { ArrowLeft, Instagram } from "lucide-react";
 import { useLang } from "@/context/LanguageContext";
 
 const fadeUp = {
@@ -16,12 +16,12 @@ const stagger = {
 
 function PhotoPlaceholder({ label }: { label: string }) {
   return (
-    <div className="w-full aspect-square bg-muted/40 border border-border flex flex-col items-center justify-center relative overflow-hidden group-hover:border-sage/50 transition-colors duration-500">
+    <div className="w-full aspect-square bg-muted/40 border border-border flex flex-col items-center justify-center relative overflow-hidden group-hover:border-olive/50 transition-colors duration-500">
       <div className="absolute inset-0 placeholder-pattern opacity-60" />
       <div className="relative z-10 flex flex-col items-center gap-2">
-        <div className="w-8 h-px bg-sage/40" />
+        <div className="w-8 h-px bg-olive/40" />
         <span className="font-sans italic text-[11px] text-muted-foreground/60 tracking-widest uppercase">{label}</span>
-        <div className="w-8 h-px bg-sage/40" />
+        <div className="w-8 h-px bg-olive/40" />
       </div>
     </div>
   );
@@ -42,8 +42,8 @@ function MenuCategory({ title, items, addPhotoLabel }: { title: string; items: M
       variants={stagger}
     >
       <motion.div variants={fadeUp} className="flex items-center gap-4 mb-10">
-        <div className="w-6 h-px bg-sage" />
-        <h3 className="font-sans text-[11px] tracking-[0.28em] uppercase text-sage font-medium">{title}</h3>
+        <div className="w-6 h-px bg-olive" />
+        <h3 className="font-sans text-[11px] tracking-[0.28em] uppercase text-olive font-medium">{title}</h3>
         <div className="flex-1 h-px bg-border/50" />
       </motion.div>
 
@@ -57,7 +57,7 @@ function MenuCategory({ title, items, addPhotoLabel }: { title: string; items: M
           >
             <PhotoPlaceholder label={addPhotoLabel} />
             <div className="mt-4 space-y-1.5">
-              <h4 className="font-serif text-lg leading-tight text-foreground group-hover:text-sage transition-colors duration-300">
+              <h4 className="font-serif text-lg leading-tight text-foreground group-hover:text-olive transition-colors duration-300">
                 {item.name}
               </h4>
               <p className="font-sans text-xs text-muted-foreground leading-relaxed">
@@ -73,12 +73,7 @@ function MenuCategory({ title, items, addPhotoLabel }: { title: string; items: M
 
 export default function Menu() {
   const { lang, setLang, t } = useLang();
-  const [scrolled, setScrolled] = useState(false);
-
-  if (typeof window !== "undefined") {
-    const handleScroll = () => setScrolled(window.scrollY > 40);
-    window.addEventListener("scroll", handleScroll, { passive: true, once: true });
-  }
+  const [_scrolled, _setScrolled] = useState(false);
 
   const { categories, items, addPhoto: addPhotoLabel } = t.menu;
 
@@ -150,7 +145,7 @@ export default function Menu() {
           <button
             data-testid="lang-toggle-menu"
             onClick={() => setLang(lang === "tr" ? "en" : "tr")}
-            className="text-[11px] tracking-[0.16em] uppercase font-sans font-medium px-3 py-1.5 border border-border text-foreground hover:border-sage hover:text-sage transition-all duration-300"
+            className="text-[11px] tracking-[0.16em] uppercase font-sans font-medium px-3 py-1.5 border border-border text-foreground hover:border-olive hover:text-olive transition-all duration-300"
           >
             {lang === "tr" ? "EN" : "TR"}
           </button>
@@ -160,12 +155,8 @@ export default function Menu() {
       {/* Hero Bar */}
       <div className="pt-24 pb-16 px-8 green-stripe">
         <div className="max-w-6xl mx-auto">
-          <motion.div
-            initial="hidden"
-            animate="visible"
-            variants={stagger}
-          >
-            <motion.p variants={fadeUp} className="font-sans text-[11px] tracking-[0.28em] uppercase text-sage mb-4">
+          <motion.div initial="hidden" animate="visible" variants={stagger}>
+            <motion.p variants={fadeUp} className="font-sans text-[11px] tracking-[0.28em] uppercase text-olive mb-4">
               Urla's
             </motion.p>
             <motion.h1 variants={fadeUp} className="font-serif text-6xl md:text-7xl text-foreground mb-4">
@@ -194,17 +185,18 @@ export default function Menu() {
       <footer className="bg-foreground text-background py-14 px-8 mt-10">
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-8">
           <div>
-            <h2 className="font-serif text-2xl font-bold text-primary mb-1">Urla's</h2>
+            <h2 className="font-serif text-2xl font-bold text-olive mb-1">Urla's</h2>
             <p className="font-sans text-background/40 text-xs tracking-wide">{t.footer.tagline}</p>
           </div>
-          <div className="flex items-center gap-5">
-            <a href="#" className="text-background/40 hover:text-sage transition-colors" aria-label="Instagram">
-              <Instagram className="w-4 h-4" strokeWidth={1.5} />
-            </a>
-            <a href="#" className="text-background/40 hover:text-sage transition-colors" aria-label="Twitter">
-              <Twitter className="w-4 h-4" strokeWidth={1.5} />
-            </a>
-          </div>
+          <a
+            href="https://www.instagram.com/urlascoffee/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-background/40 hover:text-olive transition-colors"
+            aria-label="Instagram"
+          >
+            <Instagram className="w-4 h-4" strokeWidth={1.5} />
+          </a>
           <p className="font-sans text-background/25 text-xs tracking-[0.15em] uppercase">
             © {new Date().getFullYear()} Urla's
           </p>

@@ -7,7 +7,6 @@ interface Translations {
     about: string;
     menu: string;
     visit: string;
-    order: string;
   };
   hero: {
     tagline: string;
@@ -60,7 +59,6 @@ const tr: Translations = {
     about: "Hakkımızda",
     menu: "Menü",
     visit: "Bizi Bul",
-    order: "Sipariş Ver",
   },
   hero: {
     tagline: "Sıradan değil, özenle hazırlanmış. Tıpkı doğru çekilen mükemmel bir espresso gibi.",
@@ -69,7 +67,7 @@ const tr: Translations = {
   about: {
     title: "Kahvenin Sanatı",
     p1: "Her fincan kahvenin bir hikayesi olduğuna inanıyoruz. Urla's'ta bu hikaye niyetle başlar. Çekirdeklerimizi seçme biçimimizde, öğütme hassasiyetimizde ve baristalarımızın her fincana döktüğü özenle kendini gösterir.",
-    p2: "Dükkanımız bir sığınak olarak tasarlandı. Yavaşlayabileceğiniz, nefes alabileceğiniz ve gürültülü bir dünyada sessiz bir zanaat anının tadını çıkarabileceğiniz bir yer. Biz yalnızca bir kafe değil; mükemmel kavurmanın etrafında kurulmuş bir topluluğuz.",
+    p2: "Dükkanımız bir sığınak olarak tasarlandı. Yavaşlayabileceğiniz, nefes alabileceğiniz ve gürültülü bir dünyada sessiz bir zanaat anının tadını çıkarabileceğiniz bir yer. Biz yalnızca bir kafe değil; mükemmel kahvenin etrafında kurulmuş bir topluluğuz.",
   },
   gallery: {
     title: "Atmosfer",
@@ -80,11 +78,11 @@ const tr: Translations = {
     location: "Konum",
     hours: "Çalışma Saatleri",
     contact: "İletişim",
-    address: "Kahve Sokak 123\nUrla, İzmir",
+    address: "Merkez Mah. Ayazma Cad.\nIlgın Sokak NEF11 C Blok\n34406 Kağıthane / İstanbul",
     weekdays: "Pzt–Cum  07:00–21:00",
     weekend: "Cmt–Paz  08:00–22:00",
     email: "hello@urlas.com",
-    phone: "+90 232 123 45 67",
+    phone: "+90 534 696 20 33",
   },
   footer: {
     tagline: "Özenle hazırlanmış.",
@@ -129,7 +127,6 @@ const en: Translations = {
     about: "About",
     menu: "Menu",
     visit: "Visit Us",
-    order: "Order Now",
   },
   hero: {
     tagline: "Unpretentious but carefully crafted. Like the perfect espresso pulled just right.",
@@ -149,11 +146,11 @@ const en: Translations = {
     location: "Location",
     hours: "Opening Hours",
     contact: "Contact",
-    address: "123 Coffee Lane\nUrla District",
+    address: "Merkez Mah. Ayazma Cad.\nIlgın Sokak NEF11 C Blok\n34406 Kağıthane / Istanbul",
     weekdays: "Mon–Fri  7:00–21:00",
     weekend: "Sat–Sun  8:00–22:00",
     email: "hello@urlas.com",
-    phone: "+90 232 123 45 67",
+    phone: "+90 534 696 20 33",
   },
   footer: {
     tagline: "Carefully crafted.",
