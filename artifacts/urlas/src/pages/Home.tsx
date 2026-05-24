@@ -154,9 +154,6 @@ export default function Home() {
           variants={stagger}
           className="relative z-10 text-center text-white px-6 pb-28 max-w-4xl"
         >
-          <motion.p variants={fadeUp} className="font-sans text-[11px] tracking-[0.3em] uppercase mb-6 text-white/60">
-            Kağıthane, İstanbul
-          </motion.p>
           <motion.h1 variants={fadeUp} className="font-serif text-7xl md:text-8xl lg:text-[9rem] mb-8 tracking-tight leading-none">
             Urla's
           </motion.h1>
