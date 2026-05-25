@@ -1,7 +1,8 @@
 import { motion } from "framer-motion";
 import { Link } from "wouter";
-import { ArrowLeft, Instagram } from "lucide-react";
+import { ArrowLeft, Instagram, Image as ImageIcon } from "lucide-react";
 import { useLang } from "@/context/LanguageContext";
+import { useMenuData } from "@/hooks/useMenuData";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 28 },
@@ -13,112 +14,9 @@ const stagger = {
   visible: { transition: { staggerChildren: 0.08, duration: 0.6 } },
 };
 
-function PhotoPlaceholder({ label }: { label: string }) {
-  return (
-    <div className="w-full aspect-square bg-muted/40 border border-border flex flex-col items-center justify-center relative overflow-hidden group-hover:border-olive/50 transition-colors duration-500">
-      <div className="absolute inset-0 placeholder-pattern opacity-60" />
-      <div className="relative z-10 flex flex-col items-center gap-2">
-        <div className="w-6 h-px bg-olive/40" />
-        <span className="font-sans italic text-[10px] text-muted-foreground/60 tracking-widest uppercase">{label}</span>
-        <div className="w-6 h-px bg-olive/40" />
-      </div>
-    </div>
-  );
-}
-
-interface MenuItem {
-  key: string;
-  name: string;
-  desc: string;
-}
-
-function MenuCategory({ title, items, addPhotoLabel }: { title: string; items: MenuItem[]; addPhotoLabel: string }) {
-  return (
-    <motion.div
-      initial="hidden"
-      whileInView="visible"
-      viewport={{ once: true, margin: "-30px" }}
-      variants={stagger}
-    >
-      <motion.div variants={fadeUp} className="flex items-center gap-3 mb-7 md:mb-10">
-        <div className="w-5 h-px bg-olive" />
-        <h3 className="font-sans text-[10px] md:text-[11px] tracking-[0.28em] uppercase text-olive font-medium">{title}</h3>
-        <div className="flex-1 h-px bg-border/50" />
-      </motion.div>
-
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-6">
-        {items.map((item, i) => (
-          <motion.div
-            key={i}
-            variants={fadeUp}
-            className="group cursor-default"
-            data-testid={`menu-item-${item.key}`}
-          >
-            <PhotoPlaceholder label={addPhotoLabel} />
-            <div className="mt-3 md:mt-4 space-y-1">
-              <h4 className="font-serif text-base md:text-lg leading-tight text-foreground group-hover:text-olive transition-colors duration-300">
-                {item.name}
-              </h4>
-              <p className="font-sans text-[11px] md:text-xs text-muted-foreground leading-relaxed">
-                {item.desc}
-              </p>
-            </div>
-          </motion.div>
-        ))}
-      </div>
-    </motion.div>
-  );
-}
-
 export default function Menu() {
   const { lang, setLang, t } = useLang();
-
-  const { categories, items, addPhoto: addPhotoLabel } = t.menu;
-
-  const menuSections = [
-    {
-      title: categories.espresso,
-      items: [
-        { key: "espresso", ...items.espresso },
-        { key: "macchiato", ...items.macchiato },
-        { key: "cortado", ...items.cortado },
-        { key: "cappuccino", ...items.cappuccino },
-        { key: "latte", ...items.latte },
-      ],
-    },
-    {
-      title: categories.cold,
-      items: [
-        { key: "coldBrew", ...items.coldBrew },
-        { key: "nitroCold", ...items.nitroCold },
-        { key: "icedLatte", ...items.icedLatte },
-      ],
-    },
-    {
-      title: categories.filter,
-      items: [
-        { key: "pourOver", ...items.pourOver },
-        { key: "batchBrew", ...items.batchBrew },
-        { key: "chemex", ...items.chemex },
-      ],
-    },
-    {
-      title: categories.hot,
-      items: [
-        { key: "matcha", ...items.matcha },
-        { key: "chai", ...items.chai },
-        { key: "hotChocolate", ...items.hotChocolate },
-      ],
-    },
-    {
-      title: categories.pastries,
-      items: [
-        { key: "butterCroissant", ...items.butterCroissant },
-        { key: "almondCroissant", ...items.almondCroissant },
-        { key: "avocadoToast", ...items.avocadoToast },
-      ],
-    },
-  ];
+  const { menuData } = useMenuData();
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -169,14 +67,54 @@ export default function Menu() {
 
       {/* Menu Content */}
       <div className="max-w-6xl mx-auto px-4 sm:px-6 md:px-8 py-12 md:py-20 space-y-16 md:space-y-24">
-        {menuSections.map((section, i) => (
-          <MenuCategory
-            key={i}
-            title={section.title}
-            items={section.items}
-            addPhotoLabel={addPhotoLabel}
-          />
-        ))}
+        {menuData.categories.map((cat) => {
+          const catItems = menuData.items.filter(i => i.categoryId === cat.id);
+          return (
+            <motion.div
+              key={cat.id}
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, margin: "-30px" }}
+              variants={stagger}
+            >
+              <motion.div variants={fadeUp} className="flex items-center gap-3 mb-7 md:mb-10">
+                <div className="w-5 h-px bg-olive" />
+                <h3 className="font-sans text-[10px] md:text-[11px] tracking-[0.28em] uppercase text-olive font-medium">
+                  {lang === "tr" ? cat.nameTr : cat.nameEn}
+                </h3>
+                <div className="flex-1 h-px bg-border/50" />
+              </motion.div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-6">
+                {catItems.map((item) => (
+                  <motion.div key={item.id} variants={fadeUp} className="group cursor-default">
+                    <div className="w-full aspect-square overflow-hidden bg-muted/40 border border-border group-hover:border-olive/50 transition-colors duration-500 relative">
+                      {item.photoUrl ? (
+                        <img
+                          src={item.photoUrl}
+                          alt={lang === "tr" ? item.nameTr : item.nameEn}
+                          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                        />
+                      ) : (
+                        <div className="absolute inset-0 placeholder-pattern opacity-60 flex flex-col items-center justify-center gap-2">
+                          <ImageIcon className="w-6 h-6 text-muted-foreground/30" strokeWidth={1} />
+                        </div>
+                      )}
+                    </div>
+                    <div className="mt-3 md:mt-4 space-y-1">
+                      <h4 className="font-serif text-base md:text-lg leading-tight text-foreground group-hover:text-olive transition-colors duration-300">
+                        {lang === "tr" ? item.nameTr : item.nameEn}
+                      </h4>
+                      <p className="font-sans text-[11px] md:text-xs text-muted-foreground leading-relaxed">
+                        {lang === "tr" ? item.descTr : item.descEn}
+                      </p>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            </motion.div>
+          );
+        })}
       </div>
 
       {/* Footer */}
@@ -186,13 +124,7 @@ export default function Menu() {
             <h2 className="font-serif text-xl md:text-2xl font-bold text-olive mb-1">Urla's</h2>
             <p className="font-sans text-background/40 text-xs tracking-wide">{t.footer.tagline}</p>
           </div>
-          <a
-            href="https://www.instagram.com/urlascoffee/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-background/40 hover:text-olive transition-colors"
-            aria-label="Instagram"
-          >
+          <a href="https://www.instagram.com/urlascoffee/" target="_blank" rel="noopener noreferrer" className="text-background/40 hover:text-olive transition-colors" aria-label="Instagram">
             <Instagram className="w-4 h-4" strokeWidth={1.5} />
           </a>
           <p className="font-sans text-background/25 text-xs tracking-[0.15em] uppercase">

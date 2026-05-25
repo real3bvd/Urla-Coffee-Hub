@@ -1,0 +1,729 @@
+import { useState, useEffect, useRef } from "react";
+import { Link } from "wouter";
+import { ArrowLeft, Save, Trash2, Plus, Upload, Eye, EyeOff, Image, X, ChevronDown, ChevronUp } from "lucide-react";
+
+const API = "/api";
+
+function useAdminPassword() {
+  const [password, setPasswordState] = useState(() => sessionStorage.getItem("admin_pw") ?? "");
+  const [authed, setAuthed] = useState(false);
+  const [checking, setChecking] = useState(false);
+  const [error, setError] = useState("");
+
+  async function login(pw: string) {
+    setChecking(true);
+    setError("");
+    try {
+      const r = await fetch(`${API}/content`, { headers: { "x-admin-password": pw } });
+      if (r.status === 401) { setError("Hatalı şifre / Wrong password"); return; }
+      sessionStorage.setItem("admin_pw", pw);
+      setPasswordState(pw);
+      setAuthed(true);
+    } catch {
+      setError("Bağlantı hatası / Connection error");
+    } finally {
+      setChecking(false);
+    }
+  }
+
+  function logout() {
+    sessionStorage.removeItem("admin_pw");
+    setPasswordState("");
+    setAuthed(false);
+  }
+
+  return { password, authed, checking, error, login, logout };
+}
+
+async function apiPut(path: string, body: unknown, pw: string) {
+  const r = await fetch(`${API}${path}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json", "x-admin-password": pw },
+    body: JSON.stringify(body),
+  });
+  if (!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+
+async function apiPost(path: string, body: unknown, pw: string) {
+  const r = await fetch(`${API}${path}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "x-admin-password": pw },
+    body: JSON.stringify(body),
+  });
+  if (!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+
+async function apiDelete(path: string, pw: string) {
+  const r = await fetch(`${API}${path}`, {
+    method: "DELETE",
+    headers: { "x-admin-password": pw },
+  });
+  if (!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+
+async function uploadImage(file: File, pw: string): Promise<string> {
+  const urlRes = await fetch(`${API}/storage/uploads/request-url`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "x-admin-password": pw },
+    body: JSON.stringify({ name: file.name, size: file.size, contentType: file.type }),
+  });
+  if (!urlRes.ok) throw new Error("Upload URL alınamadı");
+  const { uploadURL, objectPath } = await urlRes.json() as { uploadURL: string; objectPath: string };
+  const put = await fetch(uploadURL, { method: "PUT", body: file, headers: { "Content-Type": file.type } });
+  if (!put.ok) throw new Error("Dosya yüklenemedi");
+  return objectPath;
+}
+
+function Field({ label, valueTr, valueEn, onChangeTr, onChangeEn, multiline }: {
+  label: string;
+  valueTr: string;
+  valueEn: string;
+  onChangeTr: (v: string) => void;
+  onChangeEn: (v: string) => void;
+  multiline?: boolean;
+}) {
+  const cls = "w-full border border-border rounded px-3 py-2 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-olive font-sans";
+  return (
+    <div className="space-y-2">
+      <p className="text-xs font-sans text-muted-foreground tracking-wider uppercase">{label}</p>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div>
+          <label className="text-[10px] text-olive font-sans uppercase tracking-widest mb-1 block">TR</label>
+          {multiline
+            ? <textarea rows={3} className={cls} value={valueTr} onChange={e => onChangeTr(e.target.value)} />
+            : <input className={cls} value={valueTr} onChange={e => onChangeTr(e.target.value)} />}
+        </div>
+        <div>
+          <label className="text-[10px] text-olive font-sans uppercase tracking-widest mb-1 block">EN</label>
+          {multiline
+            ? <textarea rows={3} className={cls} value={valueEn} onChange={e => onChangeEn(e.target.value)} />
+            : <input className={cls} value={valueEn} onChange={e => onChangeEn(e.target.value)} />}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SaveBtn({ saving, onClick }: { saving: boolean; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={saving}
+      className="flex items-center gap-2 px-4 py-2 bg-olive text-white text-xs tracking-widest uppercase font-sans rounded hover:bg-olive/80 disabled:opacity-50 transition-colors"
+    >
+      <Save className="w-3.5 h-3.5" />
+      {saving ? "Kaydediliyor…" : "Kaydet / Save"}
+    </button>
+  );
+}
+
+function Toast({ msg, ok }: { msg: string; ok: boolean }) {
+  return (
+    <div className={`fixed bottom-6 right-6 z-50 px-5 py-3 rounded text-sm font-sans shadow-lg ${ok ? "bg-olive text-white" : "bg-red-600 text-white"}`}>
+      {msg}
+    </div>
+  );
+}
+
+type ContentRecord = Record<string, { tr: string; en: string }>;
+
+function GeneralTab({ pw }: { pw: string }) {
+  const [content, setContent] = useState<ContentRecord>({});
+  const [saving, setSaving] = useState(false);
+  const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
+
+  useEffect(() => {
+    fetch(`${API}/content`).then(r => r.json()).then((d: ContentRecord) => {
+      const merged: ContentRecord = {};
+      const keys = ["hero.tagline", "about.title", "about.p1", "about.p2", "footer.tagline"];
+      for (const k of keys) {
+        merged[k] = d[k] ?? { tr: "", en: "" };
+      }
+      setContent(merged);
+    });
+  }, []);
+
+  function update(key: string, lang: "tr" | "en", val: string) {
+    setContent(prev => ({ ...prev, [key]: { ...prev[key], [lang]: val } }));
+  }
+
+  async function save() {
+    setSaving(true);
+    try {
+      for (const [key, val] of Object.entries(content)) {
+        await apiPut(`/content/${encodeURIComponent(key)}`, { tr: val.tr, en: val.en }, pw);
+      }
+      setToast({ msg: "Kaydedildi!", ok: true });
+    } catch {
+      setToast({ msg: "Hata oluştu", ok: false });
+    } finally {
+      setSaving(false);
+      setTimeout(() => setToast(null), 3000);
+    }
+  }
+
+  const keys: Array<{ key: string; label: string; multiline?: boolean }> = [
+    { key: "hero.tagline", label: "Hero Tagline", multiline: true },
+    { key: "about.title", label: "Hakkımızda Başlık / About Title" },
+    { key: "about.p1", label: "Hakkımızda Paragraf 1 / About P1", multiline: true },
+    { key: "about.p2", label: "Hakkımızda Paragraf 2 / About P2", multiline: true },
+    { key: "footer.tagline", label: "Footer Tagline" },
+  ];
+
+  return (
+    <div className="space-y-8">
+      {keys.map(({ key, label, multiline }) => (
+        <Field
+          key={key}
+          label={label}
+          valueTr={content[key]?.tr ?? ""}
+          valueEn={content[key]?.en ?? ""}
+          onChangeTr={v => update(key, "tr", v)}
+          onChangeEn={v => update(key, "en", v)}
+          multiline={multiline}
+        />
+      ))}
+      <SaveBtn saving={saving} onClick={save} />
+      {toast && <Toast msg={toast.msg} ok={toast.ok} />}
+    </div>
+  );
+}
+
+function ContactTab({ pw }: { pw: string }) {
+  const [content, setContent] = useState<ContentRecord>({});
+  const [saving, setSaving] = useState(false);
+  const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
+
+  const keys = ["visit.address", "visit.weekdays", "visit.weekend", "visit.email", "visit.phone", "contact.instagram"];
+
+  useEffect(() => {
+    fetch(`${API}/content`).then(r => r.json()).then((d: ContentRecord) => {
+      const merged: ContentRecord = {};
+      for (const k of keys) merged[k] = d[k] ?? { tr: "", en: "" };
+      setContent(merged);
+    });
+  }, []);
+
+  function update(key: string, lang: "tr" | "en", val: string) {
+    setContent(prev => ({ ...prev, [key]: { ...prev[key], [lang]: val } }));
+  }
+
+  async function save() {
+    setSaving(true);
+    try {
+      for (const [key, val] of Object.entries(content)) {
+        await apiPut(`/content/${encodeURIComponent(key)}`, { tr: val.tr, en: val.en }, pw);
+      }
+      setToast({ msg: "Kaydedildi!", ok: true });
+    } catch {
+      setToast({ msg: "Hata oluştu", ok: false });
+    } finally {
+      setSaving(false);
+      setTimeout(() => setToast(null), 3000);
+    }
+  }
+
+  const fieldDefs: Array<{ key: string; label: string; multiline?: boolean }> = [
+    { key: "visit.address", label: "Adres / Address", multiline: true },
+    { key: "visit.weekdays", label: "Hafta içi saatler / Weekday Hours" },
+    { key: "visit.weekend", label: "Hafta sonu saatler / Weekend Hours" },
+    { key: "visit.email", label: "E-posta / Email" },
+    { key: "visit.phone", label: "Telefon / Phone" },
+    { key: "contact.instagram", label: "Instagram Kullanıcı Adı / Instagram Handle" },
+  ];
+
+  return (
+    <div className="space-y-8">
+      {fieldDefs.map(({ key, label, multiline }) => (
+        <Field
+          key={key}
+          label={label}
+          valueTr={content[key]?.tr ?? ""}
+          valueEn={content[key]?.en ?? ""}
+          onChangeTr={v => update(key, "tr", v)}
+          onChangeEn={v => update(key, "en", v)}
+          multiline={multiline}
+        />
+      ))}
+      <div className="text-xs text-muted-foreground font-sans p-3 bg-muted/40 rounded">
+        Instagram için sadece kullanıcı adı yazın (örn: urlascoffee) — @ işareti olmadan.<br />
+        Enter only the username for Instagram (e.g. urlascoffee) — no @ sign.
+      </div>
+      <SaveBtn saving={saving} onClick={save} />
+      {toast && <Toast msg={toast.msg} ok={toast.ok} />}
+    </div>
+  );
+}
+
+interface GalleryImage { id: number; url: string; altTr: string; altEn: string; sortOrder: number; }
+
+function GalleryTab({ pw }: { pw: string }) {
+  const [images, setImages] = useState<GalleryImage[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  function load() {
+    fetch(`${API}/gallery`).then(r => r.json()).then((d: GalleryImage[]) => {
+      setImages(Array.isArray(d) ? d : []);
+    });
+  }
+
+  useEffect(() => { load(); }, []);
+
+  async function handleUpload(file: File) {
+    setUploading(true);
+    try {
+      const objectPath = await uploadImage(file, pw);
+      const imgUrl = `/api/storage/objects/${objectPath.replace(/^\/objects\//, "")}`;
+      await apiPost("/gallery", { url: imgUrl, altTr: file.name, altEn: file.name, sortOrder: images.length }, pw);
+      load();
+      setToast({ msg: "Yüklendi!", ok: true });
+    } catch {
+      setToast({ msg: "Yükleme hatası", ok: false });
+    } finally {
+      setUploading(false);
+      setTimeout(() => setToast(null), 3000);
+    }
+  }
+
+  async function handleDelete(id: number) {
+    if (!confirm("Bu resmi sil? / Delete this image?")) return;
+    try {
+      await apiDelete(`/gallery/${id}`, pw);
+      load();
+      setToast({ msg: "Silindi", ok: true });
+    } catch {
+      setToast({ msg: "Silinemedi", ok: false });
+    } finally {
+      setTimeout(() => setToast(null), 3000);
+    }
+  }
+
+  async function updateAlt(img: GalleryImage, field: "altTr" | "altEn", val: string) {
+    const updated = { ...img, [field]: val };
+    setImages(prev => prev.map(i => i.id === img.id ? updated : i));
+    await apiPut(`/gallery/${img.id}`, { [field]: val }, pw).catch(() => {});
+  }
+
+  return (
+    <div className="space-y-8">
+      <div className="flex items-center justify-between">
+        <p className="text-xs text-muted-foreground font-sans uppercase tracking-widest">
+          {images.length} resim / images
+        </p>
+        <button
+          onClick={() => fileRef.current?.click()}
+          disabled={uploading}
+          className="flex items-center gap-2 px-4 py-2 border border-olive text-olive text-xs tracking-widest uppercase font-sans rounded hover:bg-olive hover:text-white disabled:opacity-50 transition-colors"
+        >
+          <Upload className="w-3.5 h-3.5" />
+          {uploading ? "Yükleniyor…" : "Resim Ekle / Add Image"}
+        </button>
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={e => { const f = e.target.files?.[0]; if (f) handleUpload(f); e.target.value = ""; }}
+        />
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {images.map(img => (
+          <div key={img.id} className="border border-border rounded overflow-hidden group">
+            <div className="relative aspect-[4/3] overflow-hidden bg-muted">
+              <img src={img.url} alt={img.altTr} className="w-full h-full object-cover" />
+              <button
+                onClick={() => handleDelete(img.id)}
+                className="absolute top-2 right-2 bg-black/60 text-white rounded p-1.5 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            </div>
+            <div className="p-3 space-y-2">
+              <div>
+                <label className="text-[10px] text-olive font-sans uppercase tracking-widest">Alt TR</label>
+                <input
+                  className="w-full border border-border rounded px-2 py-1 text-xs font-sans bg-background focus:outline-none focus:ring-1 focus:ring-olive mt-1"
+                  value={img.altTr}
+                  onChange={e => updateAlt(img, "altTr", e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="text-[10px] text-olive font-sans uppercase tracking-widest">Alt EN</label>
+                <input
+                  className="w-full border border-border rounded px-2 py-1 text-xs font-sans bg-background focus:outline-none focus:ring-1 focus:ring-olive mt-1"
+                  value={img.altEn}
+                  onChange={e => updateAlt(img, "altEn", e.target.value)}
+                />
+              </div>
+            </div>
+          </div>
+        ))}
+        {images.length === 0 && (
+          <div className="col-span-full text-center py-16 text-muted-foreground text-sm font-sans">
+            Henüz resim yok. / No images yet.
+          </div>
+        )}
+      </div>
+      {toast && <Toast msg={toast.msg} ok={toast.ok} />}
+    </div>
+  );
+}
+
+interface ApiCategory { id: number; nameTr: string; nameEn: string; sortOrder: number; }
+interface ApiItem { id: number; categoryId: number; nameTr: string; nameEn: string; descTr: string; descEn: string; photoUrl: string | null; sortOrder: number; }
+
+function MenuTab({ pw }: { pw: string }) {
+  const [categories, setCategories] = useState<ApiCategory[]>([]);
+  const [items, setItems] = useState<ApiItem[]>([]);
+  const [expandedCat, setExpandedCat] = useState<number | null>(null);
+  const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
+  const [newCat, setNewCat] = useState({ nameTr: "", nameEn: "" });
+  const [addingItem, setAddingItem] = useState<number | null>(null);
+  const [newItem, setNewItem] = useState({ nameTr: "", nameEn: "", descTr: "", descEn: "" });
+  const uploadRefs = useRef<Record<number, HTMLInputElement | null>>({});
+
+  function showToast(msg: string, ok = true) {
+    setToast({ msg, ok });
+    setTimeout(() => setToast(null), 3000);
+  }
+
+  function load() {
+    fetch(`${API}/menu`).then(r => r.json()).then((d: { categories: ApiCategory[]; items: ApiItem[] }) => {
+      setCategories(d.categories ?? []);
+      setItems(d.items ?? []);
+    });
+  }
+
+  useEffect(() => { load(); }, []);
+
+  async function addCategory() {
+    if (!newCat.nameTr || !newCat.nameEn) return;
+    try {
+      await apiPost("/menu/categories", { ...newCat, sortOrder: categories.length }, pw);
+      setNewCat({ nameTr: "", nameEn: "" });
+      load();
+      showToast("Kategori eklendi!");
+    } catch { showToast("Hata", false); }
+  }
+
+  async function deleteCategory(id: number) {
+    if (!confirm("Kategori ve tüm ürünlerini sil? / Delete category and all its items?")) return;
+    try {
+      await apiDelete(`/menu/categories/${id}`, pw);
+      load();
+      showToast("Silindi");
+    } catch { showToast("Hata", false); }
+  }
+
+  async function updateCategory(id: number, nameTr: string, nameEn: string) {
+    try {
+      await apiPut(`/menu/categories/${id}`, { nameTr, nameEn }, pw);
+      showToast("Kaydedildi!");
+    } catch { showToast("Hata", false); }
+  }
+
+  async function addItem(categoryId: number) {
+    if (!newItem.nameTr || !newItem.nameEn) return;
+    try {
+      await apiPost("/menu/items", { ...newItem, categoryId, sortOrder: items.filter(i => i.categoryId === categoryId).length }, pw);
+      setNewItem({ nameTr: "", nameEn: "", descTr: "", descEn: "" });
+      setAddingItem(null);
+      load();
+      showToast("Ürün eklendi!");
+    } catch { showToast("Hata", false); }
+  }
+
+  async function deleteItem(id: number) {
+    if (!confirm("Bu ürünü sil? / Delete this item?")) return;
+    try {
+      await apiDelete(`/menu/items/${id}`, pw);
+      load();
+      showToast("Silindi");
+    } catch { showToast("Hata", false); }
+  }
+
+  async function updateItem(item: ApiItem, field: string, val: string) {
+    const updated = { ...item, [field]: val };
+    setItems(prev => prev.map(i => i.id === item.id ? updated : i));
+    await apiPut(`/menu/items/${item.id}`, { [field]: val }, pw).catch(() => {});
+  }
+
+  async function uploadItemPhoto(item: ApiItem, file: File) {
+    try {
+      const objectPath = await uploadImage(file, pw);
+      const imgUrl = `/api/storage/objects/${objectPath.replace(/^\/objects\//, "")}`;
+      await apiPut(`/menu/items/${item.id}`, { photoUrl: imgUrl }, pw);
+      setItems(prev => prev.map(i => i.id === item.id ? { ...i, photoUrl: imgUrl } : i));
+      showToast("Fotoğraf yüklendi!");
+    } catch { showToast("Yükleme hatası", false); }
+  }
+
+  const inputCls = "w-full border border-border rounded px-2 py-1.5 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-olive font-sans";
+
+  return (
+    <div className="space-y-6">
+      <div className="border border-border rounded p-4 space-y-3">
+        <p className="text-xs font-sans uppercase tracking-widest text-olive">Yeni Kategori / New Category</p>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="text-[10px] font-sans uppercase tracking-widest text-muted-foreground block mb-1">TR</label>
+            <input className={inputCls} placeholder="Kategori adı (TR)" value={newCat.nameTr} onChange={e => setNewCat(p => ({ ...p, nameTr: e.target.value }))} />
+          </div>
+          <div>
+            <label className="text-[10px] font-sans uppercase tracking-widest text-muted-foreground block mb-1">EN</label>
+            <input className={inputCls} placeholder="Category name (EN)" value={newCat.nameEn} onChange={e => setNewCat(p => ({ ...p, nameEn: e.target.value }))} />
+          </div>
+        </div>
+        <button
+          onClick={addCategory}
+          className="flex items-center gap-2 px-4 py-2 bg-olive text-white text-xs tracking-widest uppercase font-sans rounded hover:bg-olive/80 transition-colors"
+        >
+          <Plus className="w-3.5 h-3.5" /> Kategori Ekle / Add Category
+        </button>
+      </div>
+
+      {categories.map(cat => {
+        const catItems = items.filter(i => i.categoryId === cat.id);
+        const isExpanded = expandedCat === cat.id;
+        return (
+          <div key={cat.id} className="border border-border rounded overflow-hidden">
+            <div className="flex items-center gap-3 px-4 py-3 bg-muted/30">
+              <button
+                onClick={() => setExpandedCat(isExpanded ? null : cat.id)}
+                className="flex-1 flex items-center gap-2 text-left"
+              >
+                {isExpanded ? <ChevronUp className="w-4 h-4 text-olive shrink-0" /> : <ChevronDown className="w-4 h-4 text-olive shrink-0" />}
+                <span className="font-serif text-lg text-foreground">{cat.nameTr}</span>
+                <span className="text-muted-foreground text-sm font-sans">/ {cat.nameEn}</span>
+                <span className="text-xs text-muted-foreground font-sans ml-auto">{catItems.length} ürün</span>
+              </button>
+              <button
+                onClick={() => deleteCategory(cat.id)}
+                className="p-1.5 text-muted-foreground hover:text-red-500 transition-colors"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </div>
+
+            {isExpanded && (
+              <div className="p-4 space-y-4">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[10px] font-sans uppercase tracking-widest text-muted-foreground block mb-1">Kategori Adı TR</label>
+                    <input
+                      className={inputCls}
+                      defaultValue={cat.nameTr}
+                      onBlur={e => updateCategory(cat.id, e.target.value, cat.nameEn)}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-sans uppercase tracking-widest text-muted-foreground block mb-1">Category Name EN</label>
+                    <input
+                      className={inputCls}
+                      defaultValue={cat.nameEn}
+                      onBlur={e => updateCategory(cat.id, cat.nameTr, e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  {catItems.map(item => (
+                    <div key={item.id} className="border border-border/60 rounded p-3 space-y-3">
+                      <div className="flex items-start gap-3">
+                        <div className="w-16 h-16 shrink-0 bg-muted rounded overflow-hidden relative group">
+                          {item.photoUrl
+                            ? <img src={item.photoUrl} alt={item.nameTr} className="w-full h-full object-cover" />
+                            : <div className="w-full h-full flex items-center justify-center"><Image className="w-6 h-6 text-muted-foreground/40" /></div>
+                          }
+                          <button
+                            onClick={() => uploadRefs.current[item.id]?.click()}
+                            className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            <Upload className="w-4 h-4 text-white" />
+                          </button>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            ref={el => { uploadRefs.current[item.id] = el; }}
+                            onChange={e => { const f = e.target.files?.[0]; if (f) uploadItemPhoto(item, f); e.target.value = ""; }}
+                          />
+                        </div>
+                        <div className="flex-1 grid grid-cols-2 gap-2">
+                          <div>
+                            <label className="text-[10px] text-olive font-sans uppercase tracking-widest block mb-1">TR Ad</label>
+                            <input className={inputCls} defaultValue={item.nameTr} onBlur={e => updateItem(item, "nameTr", e.target.value)} />
+                          </div>
+                          <div>
+                            <label className="text-[10px] text-olive font-sans uppercase tracking-widest block mb-1">EN Name</label>
+                            <input className={inputCls} defaultValue={item.nameEn} onBlur={e => updateItem(item, "nameEn", e.target.value)} />
+                          </div>
+                          <div>
+                            <label className="text-[10px] text-muted-foreground font-sans uppercase tracking-widest block mb-1">Açıklama TR</label>
+                            <input className={inputCls} defaultValue={item.descTr} onBlur={e => updateItem(item, "descTr", e.target.value)} />
+                          </div>
+                          <div>
+                            <label className="text-[10px] text-muted-foreground font-sans uppercase tracking-widest block mb-1">Description EN</label>
+                            <input className={inputCls} defaultValue={item.descEn} onBlur={e => updateItem(item, "descEn", e.target.value)} />
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => deleteItem(item.id)}
+                          className="p-1.5 text-muted-foreground hover:text-red-500 transition-colors shrink-0"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {addingItem === cat.id ? (
+                  <div className="border border-olive/40 rounded p-3 space-y-3 bg-olive/5">
+                    <p className="text-xs font-sans uppercase tracking-widest text-olive">Yeni Ürün / New Item</p>
+                    <div className="grid grid-cols-2 gap-2">
+                      <input className={inputCls} placeholder="Ad TR" value={newItem.nameTr} onChange={e => setNewItem(p => ({ ...p, nameTr: e.target.value }))} />
+                      <input className={inputCls} placeholder="Name EN" value={newItem.nameEn} onChange={e => setNewItem(p => ({ ...p, nameEn: e.target.value }))} />
+                      <input className={inputCls} placeholder="Açıklama TR" value={newItem.descTr} onChange={e => setNewItem(p => ({ ...p, descTr: e.target.value }))} />
+                      <input className={inputCls} placeholder="Description EN" value={newItem.descEn} onChange={e => setNewItem(p => ({ ...p, descEn: e.target.value }))} />
+                    </div>
+                    <div className="flex gap-2">
+                      <button onClick={() => addItem(cat.id)} className="flex items-center gap-2 px-3 py-2 bg-olive text-white text-xs uppercase tracking-widest font-sans rounded hover:bg-olive/80 transition-colors">
+                        <Plus className="w-3 h-3" /> Ekle / Add
+                      </button>
+                      <button onClick={() => { setAddingItem(null); setNewItem({ nameTr: "", nameEn: "", descTr: "", descEn: "" }); }} className="px-3 py-2 border border-border text-xs uppercase tracking-widest font-sans rounded hover:border-olive transition-colors">
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setAddingItem(cat.id)}
+                    className="flex items-center gap-2 text-xs text-olive font-sans uppercase tracking-widest hover:underline"
+                  >
+                    <Plus className="w-3.5 h-3.5" /> Ürün Ekle / Add Item
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        );
+      })}
+
+      {categories.length === 0 && (
+        <div className="text-center py-12 text-muted-foreground text-sm font-sans">
+          Henüz kategori yok. Yukarıdan ekleyin. / No categories yet. Add one above.
+        </div>
+      )}
+      {toast && <Toast msg={toast.msg} ok={toast.ok} />}
+    </div>
+  );
+}
+
+type Tab = "general" | "contact" | "gallery" | "menu";
+
+export default function Admin() {
+  const { password, authed, checking, error, login, logout } = useAdminPassword();
+  const [pw, setPw] = useState("");
+  const [showPw, setShowPw] = useState(false);
+  const [activeTab, setActiveTab] = useState<Tab>("general");
+
+  if (!authed) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center px-4">
+        <div className="w-full max-w-sm space-y-6">
+          <div className="text-center">
+            <h1 className="font-serif text-4xl mb-2 text-foreground">Urla's</h1>
+            <p className="font-sans text-xs uppercase tracking-widest text-muted-foreground">Admin Panel</p>
+          </div>
+          <div className="space-y-3">
+            <div className="relative">
+              <input
+                type={showPw ? "text" : "password"}
+                placeholder="Şifre / Password"
+                className="w-full border border-border rounded px-4 py-3 pr-10 text-sm font-sans bg-background focus:outline-none focus:ring-1 focus:ring-olive"
+                value={pw}
+                onChange={e => setPw(e.target.value)}
+                onKeyDown={e => e.key === "Enter" && login(pw)}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPw(s => !s)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              >
+                {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+            {error && <p className="text-red-500 text-xs font-sans">{error}</p>}
+            <button
+              onClick={() => login(pw)}
+              disabled={checking || !pw}
+              className="w-full py-3 bg-olive text-white font-sans text-sm uppercase tracking-widest rounded hover:bg-olive/80 disabled:opacity-50 transition-colors"
+            >
+              {checking ? "…" : "Giriş Yap / Login"}
+            </button>
+          </div>
+          <p className="text-center text-xs text-muted-foreground font-sans">
+            Şifreyi Replit Secrets'ta ADMIN_PASSWORD olarak ayarlayın.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  const tabs: Array<{ id: Tab; label: string }> = [
+    { id: "general", label: "Genel / General" },
+    { id: "contact", label: "İletişim / Contact" },
+    { id: "gallery", label: "Galeri / Gallery" },
+    { id: "menu", label: "Menü / Menu" },
+  ];
+
+  return (
+    <div className="min-h-screen bg-background">
+      <nav className="sticky top-0 z-30 bg-background border-b border-border/60 px-4 sm:px-6 py-3 flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Link href="/" className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground font-sans uppercase tracking-widest transition-colors">
+            <ArrowLeft className="w-3.5 h-3.5" /> Siteye Dön / Back
+          </Link>
+          <span className="text-border">|</span>
+          <span className="font-serif text-lg text-foreground">Admin</span>
+        </div>
+        <button
+          onClick={logout}
+          className="text-xs text-muted-foreground hover:text-foreground font-sans uppercase tracking-widest transition-colors"
+        >
+          Çıkış / Logout
+        </button>
+      </nav>
+
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
+        <div className="flex gap-1 border-b border-border mb-8 overflow-x-auto">
+          {tabs.map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`px-4 py-2.5 text-xs font-sans uppercase tracking-widest whitespace-nowrap transition-colors border-b-2 -mb-px ${
+                activeTab === tab.id
+                  ? "border-olive text-olive"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {activeTab === "general" && <GeneralTab pw={password} />}
+        {activeTab === "contact" && <ContactTab pw={password} />}
+        {activeTab === "gallery" && <GalleryTab pw={password} />}
+        {activeTab === "menu" && <MenuTab pw={password} />}
+      </div>
+    </div>
+  );
+}

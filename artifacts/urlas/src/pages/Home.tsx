@@ -3,6 +3,8 @@ import { motion, AnimatePresence, useScroll, useTransform } from "framer-motion"
 import { MapPin, Clock, Mail, Instagram, Phone, ChevronDown, Menu, X } from "lucide-react";
 import { Link } from "wouter";
 import { useLang } from "@/context/LanguageContext";
+import { useSiteContent } from "@/hooks/useSiteContent";
+import { useGalleryData } from "@/hooks/useGalleryData";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 36 },
@@ -42,13 +44,7 @@ function SideNav({ active }: { active: SectionId }) {
   );
 }
 
-function MobileMenu({
-  open,
-  onClose,
-}: {
-  open: boolean;
-  onClose: () => void;
-}) {
+function MobileMenu({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { lang, setLang, t } = useLang();
 
   const scrollTo = (id: string) => {
@@ -70,12 +66,7 @@ function MobileMenu({
         >
           <div className="flex items-center justify-between px-6 py-5 border-b border-background/10">
             <span className="font-serif text-2xl font-bold text-olive">Urla's</span>
-            <button
-              data-testid="mobile-menu-close"
-              onClick={onClose}
-              className="text-background/60 hover:text-background p-2"
-              aria-label="Close menu"
-            >
+            <button onClick={onClose} className="text-background/60 hover:text-background p-2" aria-label="Close menu">
               <X className="w-6 h-6" strokeWidth={1.5} />
             </button>
           </div>
@@ -87,20 +78,11 @@ function MobileMenu({
               { label: t.nav.visit, action: () => scrollTo("visit") },
             ].map((item, i) =>
               item.href ? (
-                <Link
-                  key={i}
-                  href={item.href}
-                  onClick={onClose}
-                  className="font-serif text-4xl text-background/80 hover:text-olive py-3 transition-colors"
-                >
+                <Link key={i} href={item.href} onClick={onClose} className="font-serif text-4xl text-background/80 hover:text-olive py-3 transition-colors">
                   {item.label}
                 </Link>
               ) : (
-                <button
-                  key={i}
-                  onClick={item.action}
-                  className="font-serif text-4xl text-background/80 hover:text-olive py-3 text-left transition-colors"
-                >
+                <button key={i} onClick={item.action} className="font-serif text-4xl text-background/80 hover:text-olive py-3 text-left transition-colors">
                   {item.label}
                 </button>
               )
@@ -131,6 +113,8 @@ function MobileMenu({
 
 export default function Home() {
   const { lang, setLang, t } = useLang();
+  const { get } = useSiteContent(lang);
+  const { images: galleryImages } = useGalleryData();
   const [scrolled, setScrolled] = useState(false);
   const [activeSection, setActiveSection] = useState<SectionId>("hero");
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -146,11 +130,8 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    if (mobileOpen) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
+    if (mobileOpen) document.body.style.overflow = "hidden";
+    else document.body.style.overflow = "";
     return () => { document.body.style.overflow = ""; };
   }, [mobileOpen]);
 
@@ -169,6 +150,8 @@ export default function Home() {
     return () => observers.forEach((o) => o.disconnect());
   }, []);
 
+  const instagramHandle = get("contact.instagram") || "urlascoffee";
+
   return (
     <div className="bg-background text-foreground overflow-x-hidden">
       <div className="noise-overlay" />
@@ -176,13 +159,7 @@ export default function Home() {
       <MobileMenu open={mobileOpen} onClose={() => setMobileOpen(false)} />
 
       {/* Navbar */}
-      <nav
-        className={`fixed top-0 left-0 right-0 z-40 transition-all duration-500 ${
-          scrolled
-            ? "bg-background/95 backdrop-blur-md border-b border-border/60 py-3 md:py-4"
-            : "bg-transparent py-4 md:py-6"
-        }`}
-      >
+      <nav className={`fixed top-0 left-0 right-0 z-40 transition-all duration-500 ${scrolled ? "bg-background/95 backdrop-blur-md border-b border-border/60 py-3 md:py-4" : "bg-transparent py-4 md:py-6"}`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8 flex items-center justify-between">
           <button
             data-testid="nav-logo"
@@ -192,42 +169,20 @@ export default function Home() {
             Urla's
           </button>
 
-          {/* Desktop nav */}
           <div className={`hidden md:flex items-center gap-8 lg:gap-10 text-[11px] tracking-[0.18em] uppercase font-sans font-medium transition-colors duration-300 ${scrolled ? "text-foreground" : "text-white"}`}>
-            <button
-              data-testid="nav-about"
-              onClick={() => document.getElementById("about")?.scrollIntoView({ behavior: "smooth" })}
-              className="hover:text-olive transition-colors"
-            >
-              {t.nav.about}
-            </button>
-            <Link data-testid="nav-menu" href="/menu" className="hover:text-olive transition-colors">
-              {t.nav.menu}
-            </Link>
-            <button
-              data-testid="nav-visit"
-              onClick={() => document.getElementById("visit")?.scrollIntoView({ behavior: "smooth" })}
-              className="hover:text-olive transition-colors"
-            >
-              {t.nav.visit}
-            </button>
+            <button data-testid="nav-about" onClick={() => document.getElementById("about")?.scrollIntoView({ behavior: "smooth" })} className="hover:text-olive transition-colors">{t.nav.about}</button>
+            <Link data-testid="nav-menu" href="/menu" className="hover:text-olive transition-colors">{t.nav.menu}</Link>
+            <button data-testid="nav-visit" onClick={() => document.getElementById("visit")?.scrollIntoView({ behavior: "smooth" })} className="hover:text-olive transition-colors">{t.nav.visit}</button>
           </div>
 
           <div className="flex items-center gap-3">
-            {/* Lang toggle — always visible */}
             <button
               data-testid="lang-toggle"
               onClick={() => setLang(lang === "tr" ? "en" : "tr")}
-              className={`text-[11px] tracking-[0.16em] uppercase font-sans font-medium px-2.5 py-1.5 border transition-all duration-300 ${
-                scrolled
-                  ? "border-border text-foreground hover:border-olive hover:text-olive"
-                  : "border-white/50 text-white hover:border-white"
-              }`}
+              className={`text-[11px] tracking-[0.16em] uppercase font-sans font-medium px-2.5 py-1.5 border transition-all duration-300 ${scrolled ? "border-border text-foreground hover:border-olive hover:text-olive" : "border-white/50 text-white hover:border-white"}`}
             >
               {lang === "tr" ? "EN" : "TR"}
             </button>
-
-            {/* Hamburger — mobile only */}
             <button
               data-testid="mobile-menu-open"
               onClick={() => setMobileOpen(true)}
@@ -242,36 +197,18 @@ export default function Home() {
 
       {/* Hero */}
       <section id="hero" className="relative h-screen w-full flex items-end justify-center overflow-hidden">
-        <motion.div
-          style={{ scale: heroScale, opacity: heroOpacity }}
-          className="absolute inset-0 z-0"
-        >
-          <img
-            src="/cafe-interior.jpg"
-            alt="Urla's Coffee Shop"
-            className="w-full h-full object-cover"
-          />
+        <motion.div style={{ scale: heroScale, opacity: heroOpacity }} className="absolute inset-0 z-0">
+          <img src="/cafe-interior.jpg" alt="Urla's Coffee Shop" className="w-full h-full object-cover" />
           <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/45 to-black/80" />
           <div className="absolute inset-0 bg-black/25" />
         </motion.div>
 
-        <motion.div
-          initial="hidden"
-          animate="visible"
-          variants={stagger}
-          className="relative z-10 text-center text-white px-4 pb-20 md:pb-28 max-w-4xl w-full"
-        >
-          <motion.h1
-            variants={fadeUp}
-            className="font-serif text-6xl sm:text-7xl md:text-8xl lg:text-[9rem] mb-5 md:mb-8 tracking-tight leading-none"
-          >
+        <motion.div initial="hidden" animate="visible" variants={stagger} className="relative z-10 text-center text-white px-4 pb-20 md:pb-28 max-w-4xl w-full">
+          <motion.h1 variants={fadeUp} className="font-serif text-6xl sm:text-7xl md:text-8xl lg:text-[9rem] mb-5 md:mb-8 tracking-tight leading-none">
             Urla's
           </motion.h1>
-          <motion.p
-            variants={fadeUp}
-            className="font-sans text-sm md:text-base lg:text-lg font-light tracking-wide max-w-md md:max-w-xl mx-auto text-white/75 leading-relaxed"
-          >
-            {t.hero.tagline}
+          <motion.p variants={fadeUp} className="font-sans text-sm md:text-base lg:text-lg font-light tracking-wide max-w-md md:max-w-xl mx-auto text-white/75 leading-relaxed">
+            {get("hero.tagline")}
           </motion.p>
           <motion.div variants={fadeUp} className="mt-8 md:mt-12">
             <button
@@ -290,50 +227,27 @@ export default function Home() {
       <section id="about" className="py-16 md:py-24 px-4 sm:px-6 md:px-8">
         <div className="max-w-6xl mx-auto">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 md:gap-16 lg:gap-28 items-center">
-            <motion.div
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true, margin: "-60px" }}
-              variants={stagger}
-            >
+            <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-60px" }} variants={stagger}>
               <motion.p variants={fadeUp} className="font-sans text-[11px] tracking-[0.28em] uppercase text-olive mb-4">
                 {lang === "tr" ? "Hikayemiz" : "Our Story"}
               </motion.p>
-              <motion.h2
-                variants={fadeUp}
-                className="font-serif text-4xl sm:text-5xl md:text-6xl mb-6 md:mb-10 leading-tight text-foreground"
-              >
-                {t.about.title}
+              <motion.h2 variants={fadeUp} className="font-serif text-4xl sm:text-5xl md:text-6xl mb-6 md:mb-10 leading-tight text-foreground">
+                {get("about.title")}
               </motion.h2>
               <motion.div variants={stagger} className="space-y-5 text-muted-foreground font-sans text-sm md:text-base leading-[1.85]">
-                <motion.p variants={fadeUp}>{t.about.p1}</motion.p>
-                <motion.p variants={fadeUp}>{t.about.p2}</motion.p>
+                <motion.p variants={fadeUp}>{get("about.p1")}</motion.p>
+                <motion.p variants={fadeUp}>{get("about.p2")}</motion.p>
               </motion.div>
               <motion.div variants={fadeUp} className="mt-8 md:mt-10">
-                <Link
-                  data-testid="about-menu-link"
-                  href="/menu"
-                  className="inline-flex items-center gap-3 text-[11px] tracking-[0.22em] uppercase font-sans font-medium text-foreground border-b border-foreground/30 pb-1 hover:border-olive hover:text-olive transition-all duration-300"
-                >
-                  {t.nav.menu}
-                  <span className="text-xs">→</span>
+                <Link data-testid="about-menu-link" href="/menu" className="inline-flex items-center gap-3 text-[11px] tracking-[0.22em] uppercase font-sans font-medium text-foreground border-b border-foreground/30 pb-1 hover:border-olive hover:text-olive transition-all duration-300">
+                  {t.nav.menu} <span className="text-xs">→</span>
                 </Link>
               </motion.div>
             </motion.div>
 
-            <motion.div
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true, margin: "-60px" }}
-              variants={fadeUp}
-              className="relative mt-4 lg:mt-0"
-            >
+            <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-60px" }} variants={fadeUp} className="relative mt-4 lg:mt-0">
               <div className="aspect-[4/3] sm:aspect-[4/4] lg:aspect-[4/5] w-full overflow-hidden">
-                <img
-                  src="/about-coffee.jpg"
-                  alt={lang === "tr" ? "Espresso fincanları" : "Espresso cups"}
-                  className="w-full h-full object-cover"
-                />
+                <img src="/about-coffee.jpg" alt={lang === "tr" ? "Espresso fincanları" : "Espresso cups"} className="w-full h-full object-cover" />
               </div>
               <div className="absolute -bottom-3 -right-3 md:-bottom-4 md:-right-4 w-2/3 h-2/3 border border-olive/25 pointer-events-none z-[-1]" />
             </motion.div>
@@ -344,49 +258,22 @@ export default function Home() {
       {/* Gallery */}
       <section id="gallery" className="green-stripe py-16 md:py-24 px-4 sm:px-6 md:px-8">
         <div className="max-w-6xl mx-auto">
-          <motion.div
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-            variants={stagger}
-            className="mb-10 md:mb-16"
-          >
-            <motion.p variants={fadeUp} className="font-sans text-[11px] tracking-[0.28em] uppercase text-olive mb-3 md:mb-4">
-              {t.gallery.subtitle}
-            </motion.p>
-            <motion.h2 variants={fadeUp} className="font-serif text-4xl sm:text-5xl md:text-6xl text-foreground">
-              {t.gallery.title}
-            </motion.h2>
+          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={stagger} className="mb-10 md:mb-16">
+            <motion.p variants={fadeUp} className="font-sans text-[11px] tracking-[0.28em] uppercase text-olive mb-3 md:mb-4">{t.gallery.subtitle}</motion.p>
+            <motion.h2 variants={fadeUp} className="font-serif text-4xl sm:text-5xl md:text-6xl text-foreground">{t.gallery.title}</motion.h2>
           </motion.div>
 
-          <motion.div
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: "-60px" }}
-            variants={stagger}
-            className="grid grid-cols-1 sm:grid-cols-2 gap-3"
-          >
-            <motion.div variants={fadeUp} className="h-56 sm:h-72 md:h-96 overflow-hidden group">
-              <img
-                src="/gallery-latte.jpg"
-                alt="Latte art"
-                className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105"
-              />
-            </motion.div>
-            <motion.div variants={fadeUp} className="h-56 sm:h-72 md:h-96 overflow-hidden group">
-              <img
-                src="/gallery-cake.jpg"
-                alt={lang === "tr" ? "Pasta dilimi" : "Cake slice"}
-                className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105"
-              />
-            </motion.div>
-            <motion.div variants={fadeUp} className="col-span-1 sm:col-span-2 h-56 sm:h-64 md:h-80 overflow-hidden group">
-              <img
-                src="/gallery-mugs.jpg"
-                alt={lang === "tr" ? "Kahve kupaları" : "Coffee mugs"}
-                className="w-full h-full object-cover object-center transition-transform duration-1000 group-hover:scale-105"
-              />
-            </motion.div>
+          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-60px" }} variants={stagger} className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {galleryImages.slice(0, 2).map((img, i) => (
+              <motion.div key={img.id} variants={fadeUp} className="h-56 sm:h-72 md:h-96 overflow-hidden group">
+                <img src={img.url} alt={lang === "tr" ? img.altTr : img.altEn} className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105" />
+              </motion.div>
+            ))}
+            {galleryImages.slice(2).map((img, i) => (
+              <motion.div key={img.id} variants={fadeUp} className="col-span-1 sm:col-span-2 h-56 sm:h-64 md:h-80 overflow-hidden group">
+                <img src={img.url} alt={lang === "tr" ? img.altTr : img.altEn} className="w-full h-full object-cover object-center transition-transform duration-1000 group-hover:scale-105" />
+              </motion.div>
+            ))}
           </motion.div>
         </div>
       </section>
@@ -394,33 +281,18 @@ export default function Home() {
       {/* Visit Us */}
       <section id="visit" className="py-16 md:py-24 px-4 sm:px-6 md:px-8">
         <div className="max-w-6xl mx-auto">
-          <motion.div
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-            variants={stagger}
-          >
+          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={stagger}>
             <motion.p variants={fadeUp} className="font-sans text-[11px] tracking-[0.28em] uppercase text-olive mb-4 md:mb-5">
               {lang === "tr" ? "Adres & Saatler" : "Location & Hours"}
             </motion.p>
-            <motion.h2
-              variants={fadeUp}
-              className="font-serif text-4xl sm:text-5xl md:text-6xl mb-10 md:mb-16 text-foreground"
-            >
-              {t.visit.title}
-            </motion.h2>
+            <motion.h2 variants={fadeUp} className="font-serif text-4xl sm:text-5xl md:text-6xl mb-10 md:mb-16 text-foreground">{t.visit.title}</motion.h2>
 
-            <motion.div
-              variants={stagger}
-              className="grid grid-cols-1 sm:grid-cols-3 border border-border/60"
-            >
+            <motion.div variants={stagger} className="grid grid-cols-1 sm:grid-cols-3 border border-border/60">
               <motion.div variants={fadeUp} className="p-6 md:p-10 sm:border-r border-border/60 border-b sm:border-b-0">
                 <div className="w-8 h-px bg-olive mb-6 md:mb-8" />
                 <MapPin className="w-5 h-5 mb-4 md:mb-5 text-olive" strokeWidth={1.5} />
                 <h3 className="font-serif text-lg md:text-xl mb-3 md:mb-4 text-foreground">{t.visit.location}</h3>
-                <p className="font-sans text-muted-foreground text-sm leading-relaxed whitespace-pre-line">
-                  {t.visit.address}
-                </p>
+                <p className="font-sans text-muted-foreground text-sm leading-relaxed whitespace-pre-line">{get("visit.address")}</p>
               </motion.div>
 
               <motion.div variants={fadeUp} className="p-6 md:p-10 sm:border-r border-border/60 border-b sm:border-b-0">
@@ -428,8 +300,7 @@ export default function Home() {
                 <Clock className="w-5 h-5 mb-4 md:mb-5 text-olive" strokeWidth={1.5} />
                 <h3 className="font-serif text-lg md:text-xl mb-3 md:mb-4 text-foreground">{t.visit.hours}</h3>
                 <p className="font-sans text-muted-foreground text-sm leading-relaxed">
-                  {t.visit.weekdays}<br />
-                  {t.visit.weekend}
+                  {get("visit.weekdays")}<br />{get("visit.weekend")}
                 </p>
               </motion.div>
 
@@ -438,8 +309,7 @@ export default function Home() {
                 <Mail className="w-5 h-5 mb-4 md:mb-5 text-olive" strokeWidth={1.5} />
                 <h3 className="font-serif text-lg md:text-xl mb-3 md:mb-4 text-foreground">{t.visit.contact}</h3>
                 <p className="font-sans text-muted-foreground text-sm leading-relaxed">
-                  {t.visit.email}<br />
-                  {t.visit.phone}
+                  {get("visit.email")}<br />{get("visit.phone")}
                 </p>
               </motion.div>
             </motion.div>
@@ -453,24 +323,21 @@ export default function Home() {
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 md:gap-10 pb-8 md:pb-10 border-b border-background/10">
             <div>
               <h2 className="font-serif text-2xl md:text-3xl font-bold mb-1.5 text-olive">Urla's</h2>
-              <p className="font-sans text-background/50 text-xs md:text-sm tracking-wide">{t.footer.tagline}</p>
+              <p className="font-sans text-background/50 text-xs md:text-sm tracking-wide">{get("footer.tagline")}</p>
             </div>
             <div className="flex items-center gap-5">
               <a
                 data-testid="footer-instagram"
-                href="https://www.instagram.com/urlascoffee/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-background/50 hover:text-olive transition-colors"
-                aria-label="Instagram"
+                href={`https://www.instagram.com/${instagramHandle}/`}
+                target="_blank" rel="noopener noreferrer"
+                className="text-background/50 hover:text-olive transition-colors" aria-label="Instagram"
               >
                 <Instagram className="w-5 h-5" strokeWidth={1.5} />
               </a>
               <a
                 data-testid="footer-phone"
-                href="tel:+905346962033"
-                className="text-background/50 hover:text-olive transition-colors"
-                aria-label="Phone"
+                href={`tel:${get("visit.phone").replace(/\s/g, "")}`}
+                className="text-background/50 hover:text-olive transition-colors" aria-label="Phone"
               >
                 <Phone className="w-5 h-5" strokeWidth={1.5} />
               </a>
