@@ -290,9 +290,17 @@ export default function Home() {
             <motion.div variants={stagger} className="grid grid-cols-1 sm:grid-cols-3 border border-border/60">
               <motion.div variants={fadeUp} className="p-6 md:p-10 sm:border-r border-border/60 border-b sm:border-b-0">
                 <div className="w-8 h-px bg-olive mb-6 md:mb-8" />
-                <MapPin className="w-5 h-5 mb-4 md:mb-5 text-olive" strokeWidth={1.5} />
+                <a
+                  href="https://www.google.com/maps/search/?api=1&query=Urla's+Coffee+NEF11+Kağıthane+İstanbul"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="Open in Google Maps"
+                  className="inline-block mb-4 md:mb-5 text-olive hover:text-olive/70 transition-colors"
+                >
+                  <MapPin className="w-5 h-5" strokeWidth={1.5} />
+                </a>
                 <h3 className="font-serif text-lg md:text-xl mb-3 md:mb-4 text-foreground">{t.visit.location}</h3>
-                <p className="font-sans text-muted-foreground text-sm leading-relaxed whitespace-pre-line">{get("visit.address")}</p>
+                <p className="font-sans text-muted-foreground text-sm leading-relaxed whitespace-pre-line select-text cursor-text">{get("visit.address")}</p>
               </motion.div>
 
               <motion.div variants={fadeUp} className="p-6 md:p-10 sm:border-r border-border/60 border-b sm:border-b-0">
