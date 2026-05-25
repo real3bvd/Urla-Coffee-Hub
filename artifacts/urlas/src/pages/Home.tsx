@@ -266,12 +266,12 @@ export default function Home() {
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-60px" }} variants={stagger} className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {galleryImages.slice(0, 2).map((img) => (
               <motion.div key={img.id} variants={fadeUp} className="h-56 sm:h-72 md:h-96 overflow-hidden group">
-                <img src={img.url} alt={lang === "tr" ? img.altTr : img.altEn} className="w-full h-full object-cover object-bottom transition-transform duration-1000 group-hover:scale-105" />
+                <img src={img.url} alt={lang === "tr" ? img.altTr : img.altEn} className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105" style={{ objectPosition: "50% 55%" }} />
               </motion.div>
             ))}
             {galleryImages.slice(2).map((img) => (
               <motion.div key={img.id} variants={fadeUp} className="col-span-1 sm:col-span-2 h-56 sm:h-64 md:h-80 overflow-hidden group">
-                <img src={img.url} alt={lang === "tr" ? img.altTr : img.altEn} className="w-full h-full object-cover object-bottom transition-transform duration-1000 group-hover:scale-105" />
+                <img src={img.url} alt={lang === "tr" ? img.altTr : img.altEn} className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105" style={{ objectPosition: "50% 55%" }} />
               </motion.div>
             ))}
           </motion.div>
