@@ -9,9 +9,9 @@ export interface GalleryImage {
 }
 
 const DEFAULT_GALLERY: GalleryImage[] = [
-  { id: -1, url: "/gallery-latte.jpg", altTr: "Latte art", altEn: "Latte art", sortOrder: 0 },
-  { id: -2, url: "/gallery-cake.jpg", altTr: "Pasta dilimi", altEn: "Cake slice", sortOrder: 1 },
-  { id: -3, url: "/gallery-mugs.jpg", altTr: "Kahve kupaları", altEn: "Coffee mugs", sortOrder: 2 },
+  { id: -1, url: "/gallery-croissant.jpg", altTr: "Somon croissant", altEn: "Salmon croissant", sortOrder: 0 },
+  { id: -2, url: "/gallery-cinnamon.jpg", altTr: "Tarçınlı rulo", altEn: "Cinnamon roll", sortOrder: 1 },
+  { id: -3, url: "/gallery-chocolate.jpg", altTr: "Sıcak çikolata", altEn: "Hot chocolate", sortOrder: 2 },
 ];
 
 export function useGalleryData() {
