@@ -224,3 +224,18 @@
   border-top: 1px solid hsl(var(--olive) / 0.18);
   border-bottom: 1px solid hsl(var(--olive) / 0.18);
 }
+
+@keyframes gallery-scroll {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.gallery-track {
+  display: flex;
+  animation: gallery-scroll 28s linear infinite;
+  will-change: transform;
+}
+
+.gallery-track:hover {
+  animation-play-state: paused;
+}

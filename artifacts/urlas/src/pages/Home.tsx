@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { motion, AnimatePresence, useScroll, useTransform } from "framer-motion";
-import { MapPin, Clock, Mail, Instagram, Phone, ChevronDown, Menu, X } from "lucide-react";
+import { MapPin, Clock, Mail, Instagram, Phone, ChevronDown, Menu, X, ChevronLeft, ChevronRight } from "lucide-react";
 import { Link } from "wouter";
 import { useLang } from "@/context/LanguageContext";
 import { useSiteContent } from "@/hooks/useSiteContent";
@@ -118,6 +118,12 @@ export default function Home() {
   const [scrolled, setScrolled] = useState(false);
   const [activeSection, setActiveSection] = useState<SectionId>("hero");
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [lightbox, setLightbox] = useState<number | null>(null);
+
+  const openLightbox = useCallback((i: number) => setLightbox(i), []);
+  const closeLightbox = useCallback(() => setLightbox(null), []);
+  const prevPhoto = useCallback(() => setLightbox(i => i !== null ? (i - 1 + galleryImages.length) % galleryImages.length : null), [galleryImages.length]);
+  const nextPhoto = useCallback(() => setLightbox(i => i !== null ? (i + 1) % galleryImages.length : null), [galleryImages.length]);
 
   const { scrollY } = useScroll();
   const heroScale = useTransform(scrollY, [0, 600], [1, 1.06]);
@@ -130,10 +136,21 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    if (mobileOpen) document.body.style.overflow = "hidden";
+    if (mobileOpen || lightbox !== null) document.body.style.overflow = "hidden";
     else document.body.style.overflow = "";
     return () => { document.body.style.overflow = ""; };
-  }, [mobileOpen]);
+  }, [mobileOpen, lightbox]);
+
+  useEffect(() => {
+    if (lightbox === null) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") closeLightbox();
+      if (e.key === "ArrowLeft") prevPhoto();
+      if (e.key === "ArrowRight") nextPhoto();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [lightbox, closeLightbox, prevPhoto, nextPhoto]);
 
   useEffect(() => {
     const observers: IntersectionObserver[] = [];
@@ -256,27 +273,101 @@ export default function Home() {
       </section>
 
       {/* Gallery */}
-      <section id="gallery" className="green-stripe py-16 md:py-24 px-4 sm:px-6 md:px-8">
-        <div className="max-w-6xl mx-auto">
-          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={stagger} className="mb-10 md:mb-16">
+      <section id="gallery" className="green-stripe py-16 md:py-24">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 md:px-8">
+          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={stagger} className="mb-10 md:mb-14">
             <motion.p variants={fadeUp} className="font-sans text-[11px] tracking-[0.28em] uppercase text-olive mb-3 md:mb-4">{t.gallery.subtitle}</motion.p>
             <motion.h2 variants={fadeUp} className="font-serif text-4xl sm:text-5xl md:text-6xl text-foreground">{t.gallery.title}</motion.h2>
           </motion.div>
+        </div>
 
-          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-60px" }} variants={stagger} className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {galleryImages.slice(0, 2).map((img) => (
-              <motion.div key={img.id} variants={fadeUp} className="h-56 sm:h-72 md:h-96 overflow-hidden group">
-                <img src={img.url} alt={lang === "tr" ? img.altTr : img.altEn} className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105" style={{ objectPosition: "50% 55%" }} />
-              </motion.div>
+        {/* Filmstrip — full width, no side padding */}
+        <div className="overflow-hidden w-full cursor-pointer">
+          <div className="gallery-track">
+            {/* Render images twice for seamless loop */}
+            {[...galleryImages, ...galleryImages].map((img, i) => (
+              <div
+                key={i}
+                className="shrink-0 h-72 sm:h-80 md:h-96 mx-1.5 overflow-hidden"
+                style={{ width: "clamp(260px, 32vw, 420px)" }}
+                onClick={() => openLightbox(i % galleryImages.length)}
+              >
+                <img
+                  src={img.url}
+                  alt={lang === "tr" ? img.altTr : img.altEn}
+                  className="w-full h-full object-cover transition-transform duration-700 hover:scale-105"
+                  style={{ objectPosition: "50% 55%" }}
+                  draggable={false}
+                />
+              </div>
             ))}
-            {galleryImages.slice(2).map((img) => (
-              <motion.div key={img.id} variants={fadeUp} className="col-span-1 sm:col-span-2 h-56 sm:h-64 md:h-80 overflow-hidden group">
-                <img src={img.url} alt={lang === "tr" ? img.altTr : img.altEn} className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105" style={{ objectPosition: "50% 55%" }} />
-              </motion.div>
-            ))}
-          </motion.div>
+          </div>
         </div>
       </section>
+
+      {/* Lightbox */}
+      <AnimatePresence>
+        {lightbox !== null && galleryImages[lightbox] && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 z-50 bg-black/92 flex items-center justify-center"
+            onClick={closeLightbox}
+          >
+            {/* Close */}
+            <button
+              onClick={closeLightbox}
+              className="absolute top-5 right-5 text-white/70 hover:text-white transition-colors p-2"
+              aria-label="Close"
+            >
+              <X className="w-6 h-6" strokeWidth={1.5} />
+            </button>
+
+            {/* Prev */}
+            {galleryImages.length > 1 && (
+              <button
+                onClick={e => { e.stopPropagation(); prevPhoto(); }}
+                className="absolute left-4 sm:left-8 text-white/60 hover:text-white transition-colors p-3"
+                aria-label="Previous"
+              >
+                <ChevronLeft className="w-8 h-8" strokeWidth={1.5} />
+              </button>
+            )}
+
+            {/* Image */}
+            <motion.img
+              key={lightbox}
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ duration: 0.2 }}
+              src={galleryImages[lightbox].url}
+              alt={lang === "tr" ? galleryImages[lightbox].altTr : galleryImages[lightbox].altEn}
+              className="max-h-[85vh] max-w-[85vw] object-contain shadow-2xl"
+              onClick={e => e.stopPropagation()}
+              draggable={false}
+            />
+
+            {/* Next */}
+            {galleryImages.length > 1 && (
+              <button
+                onClick={e => { e.stopPropagation(); nextPhoto(); }}
+                className="absolute right-4 sm:right-8 text-white/60 hover:text-white transition-colors p-3"
+                aria-label="Next"
+              >
+                <ChevronRight className="w-8 h-8" strokeWidth={1.5} />
+              </button>
+            )}
+
+            {/* Counter */}
+            <p className="absolute bottom-5 left-1/2 -translate-x-1/2 text-white/40 text-xs font-sans tracking-widest">
+              {lightbox + 1} / {galleryImages.length}
+            </p>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Visit Us */}
       <section id="visit" className="py-16 md:py-24 px-4 sm:px-6 md:px-8">
