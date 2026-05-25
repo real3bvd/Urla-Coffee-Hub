@@ -6,7 +6,7 @@ export interface ContentRecord {
   [key: string]: { tr: string; en: string };
 }
 
-const DEFAULTS: ContentRecord = {
+export const DEFAULTS: ContentRecord = {
   "hero.tagline": {
     tr: "Sıradan değil, özenle hazırlanmış. Tıpkı doğru çekilen mükemmel bir espresso gibi.",
     en: "Unpretentious but carefully crafted. Like the perfect espresso pulled just right.",

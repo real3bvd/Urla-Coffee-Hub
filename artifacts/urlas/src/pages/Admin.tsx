@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Link } from "wouter";
 import { ArrowLeft, Save, Trash2, Plus, Upload, Eye, EyeOff, Image, X, ChevronDown, ChevronUp } from "lucide-react";
+import { DEFAULTS } from "@/hooks/useSiteContent";
 
 const API = "/api";
 
@@ -140,7 +141,7 @@ function GeneralTab({ pw }: { pw: string }) {
       const merged: ContentRecord = {};
       const keys = ["hero.tagline", "about.title", "about.p1", "about.p2", "footer.tagline"];
       for (const k of keys) {
-        merged[k] = d[k] ?? { tr: "", en: "" };
+        merged[k] = d[k] ?? DEFAULTS[k] ?? { tr: "", en: "" };
       }
       setContent(merged);
     });
@@ -202,7 +203,7 @@ function ContactTab({ pw }: { pw: string }) {
   useEffect(() => {
     fetch(`${API}/content`).then(r => r.json()).then((d: ContentRecord) => {
       const merged: ContentRecord = {};
-      for (const k of keys) merged[k] = d[k] ?? { tr: "", en: "" };
+      for (const k of keys) merged[k] = d[k] ?? DEFAULTS[k] ?? { tr: "", en: "" };
       setContent(merged);
     });
   }, []);
@@ -378,9 +379,14 @@ function GalleryTab({ pw }: { pw: string }) {
 interface ApiCategory { id: number; nameTr: string; nameEn: string; sortOrder: number; }
 interface ApiItem { id: number; categoryId: number; nameTr: string; nameEn: string; descTr: string; descEn: string; photoUrl: string | null; sortOrder: number; }
 
+type CatEdit = { nameTr: string; nameEn: string };
+type ItemEdit = { nameTr: string; nameEn: string; descTr: string; descEn: string };
+
 function MenuTab({ pw }: { pw: string }) {
   const [categories, setCategories] = useState<ApiCategory[]>([]);
   const [items, setItems] = useState<ApiItem[]>([]);
+  const [catEdits, setCatEdits] = useState<Record<number, CatEdit>>({});
+  const [itemEdits, setItemEdits] = useState<Record<number, ItemEdit>>({});
   const [expandedCat, setExpandedCat] = useState<number | null>(null);
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
   const [newCat, setNewCat] = useState({ nameTr: "", nameEn: "" });
@@ -395,8 +401,24 @@ function MenuTab({ pw }: { pw: string }) {
 
   function load() {
     fetch(`${API}/menu`).then(r => r.json()).then((d: { categories: ApiCategory[]; items: ApiItem[] }) => {
-      setCategories(d.categories ?? []);
-      setItems(d.items ?? []);
+      const cats = d.categories ?? [];
+      const itms = d.items ?? [];
+      setCategories(cats);
+      setItems(itms);
+      setCatEdits(prev => {
+        const next: Record<number, CatEdit> = { ...prev };
+        for (const c of cats) {
+          if (!next[c.id]) next[c.id] = { nameTr: c.nameTr, nameEn: c.nameEn };
+        }
+        return next;
+      });
+      setItemEdits(prev => {
+        const next: Record<number, ItemEdit> = { ...prev };
+        for (const i of itms) {
+          if (!next[i.id]) next[i.id] = { nameTr: i.nameTr, nameEn: i.nameEn, descTr: i.descTr, descEn: i.descEn };
+        }
+        return next;
+      });
     });
   }
 
@@ -518,16 +540,18 @@ function MenuTab({ pw }: { pw: string }) {
                     <label className="text-[10px] font-sans uppercase tracking-widest text-muted-foreground block mb-1">Kategori Adı TR</label>
                     <input
                       className={inputCls}
-                      defaultValue={cat.nameTr}
-                      onBlur={e => updateCategory(cat.id, e.target.value, cat.nameEn)}
+                      value={catEdits[cat.id]?.nameTr ?? cat.nameTr}
+                      onChange={e => setCatEdits(p => ({ ...p, [cat.id]: { ...p[cat.id], nameTr: e.target.value } }))}
+                      onBlur={e => updateCategory(cat.id, e.target.value, catEdits[cat.id]?.nameEn ?? cat.nameEn)}
                     />
                   </div>
                   <div>
                     <label className="text-[10px] font-sans uppercase tracking-widest text-muted-foreground block mb-1">Category Name EN</label>
                     <input
                       className={inputCls}
-                      defaultValue={cat.nameEn}
-                      onBlur={e => updateCategory(cat.id, cat.nameTr, e.target.value)}
+                      value={catEdits[cat.id]?.nameEn ?? cat.nameEn}
+                      onChange={e => setCatEdits(p => ({ ...p, [cat.id]: { ...p[cat.id], nameEn: e.target.value } }))}
+                      onBlur={e => updateCategory(cat.id, catEdits[cat.id]?.nameTr ?? cat.nameTr, e.target.value)}
                     />
                   </div>
                 </div>
@@ -558,19 +582,39 @@ function MenuTab({ pw }: { pw: string }) {
                         <div className="flex-1 grid grid-cols-2 gap-2">
                           <div>
                             <label className="text-[10px] text-olive font-sans uppercase tracking-widest block mb-1">TR Ad</label>
-                            <input className={inputCls} defaultValue={item.nameTr} onBlur={e => updateItem(item, "nameTr", e.target.value)} />
+                            <input
+                              className={inputCls}
+                              value={itemEdits[item.id]?.nameTr ?? item.nameTr}
+                              onChange={e => setItemEdits(p => ({ ...p, [item.id]: { ...p[item.id], nameTr: e.target.value } }))}
+                              onBlur={e => updateItem(item, "nameTr", e.target.value)}
+                            />
                           </div>
                           <div>
                             <label className="text-[10px] text-olive font-sans uppercase tracking-widest block mb-1">EN Name</label>
-                            <input className={inputCls} defaultValue={item.nameEn} onBlur={e => updateItem(item, "nameEn", e.target.value)} />
+                            <input
+                              className={inputCls}
+                              value={itemEdits[item.id]?.nameEn ?? item.nameEn}
+                              onChange={e => setItemEdits(p => ({ ...p, [item.id]: { ...p[item.id], nameEn: e.target.value } }))}
+                              onBlur={e => updateItem(item, "nameEn", e.target.value)}
+                            />
                           </div>
                           <div>
                             <label className="text-[10px] text-muted-foreground font-sans uppercase tracking-widest block mb-1">Açıklama TR</label>
-                            <input className={inputCls} defaultValue={item.descTr} onBlur={e => updateItem(item, "descTr", e.target.value)} />
+                            <input
+                              className={inputCls}
+                              value={itemEdits[item.id]?.descTr ?? item.descTr}
+                              onChange={e => setItemEdits(p => ({ ...p, [item.id]: { ...p[item.id], descTr: e.target.value } }))}
+                              onBlur={e => updateItem(item, "descTr", e.target.value)}
+                            />
                           </div>
                           <div>
                             <label className="text-[10px] text-muted-foreground font-sans uppercase tracking-widest block mb-1">Description EN</label>
-                            <input className={inputCls} defaultValue={item.descEn} onBlur={e => updateItem(item, "descEn", e.target.value)} />
+                            <input
+                              className={inputCls}
+                              value={itemEdits[item.id]?.descEn ?? item.descEn}
+                              onChange={e => setItemEdits(p => ({ ...p, [item.id]: { ...p[item.id], descEn: e.target.value } }))}
+                              onBlur={e => updateItem(item, "descEn", e.target.value)}
+                            />
                           </div>
                         </div>
                         <button
