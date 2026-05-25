@@ -1,13 +1,29 @@
 import { Router, type IRouter, type Request, type Response } from "express";
-import { db } from "@workspace/db";
-import { menuCategoriesTable, menuItemsTable } from "@workspace/db/schema";
-import { eq, asc } from "drizzle-orm";
 import { requireAdmin } from "./adminAuth";
+import {
+  addLocalCategory,
+  addLocalItem,
+  deleteLocalCategory,
+  deleteLocalItem,
+  getLocalMenu,
+  updateLocalCategory,
+  updateLocalItem,
+} from "../lib/localStore";
 
 const router: IRouter = Router();
+const useDatabase = Boolean(process.env.DATABASE_URL);
 
 router.get("/menu", async (req: Request, res: Response) => {
   try {
+    if (!useDatabase) {
+      res.json(await getLocalMenu());
+      return;
+    }
+    const [{ db }, { menuCategoriesTable, menuItemsTable }, { asc }] = await Promise.all([
+      import("@workspace/db"),
+      import("@workspace/db/schema"),
+      import("drizzle-orm"),
+    ]);
     const categories = await db
       .select()
       .from(menuCategoriesTable)
@@ -34,6 +50,14 @@ router.post("/menu/categories", requireAdmin, async (req: Request, res: Response
     return;
   }
   try {
+    if (!useDatabase) {
+      res.json(await addLocalCategory({ nameTr, nameEn, sortOrder: sortOrder ?? 0 }));
+      return;
+    }
+    const [{ db }, { menuCategoriesTable }] = await Promise.all([
+      import("@workspace/db"),
+      import("@workspace/db/schema"),
+    ]);
     const [cat] = await db
       .insert(menuCategoriesTable)
       .values({ nameTr, nameEn, sortOrder: sortOrder ?? 0 })
@@ -57,6 +81,15 @@ router.put("/menu/categories/:id", requireAdmin, async (req: Request, res: Respo
     if (typeof nameTr === "string") updates.nameTr = nameTr;
     if (typeof nameEn === "string") updates.nameEn = nameEn;
     if (typeof sortOrder === "number") updates.sortOrder = sortOrder;
+    if (!useDatabase) {
+      res.json(await updateLocalCategory(id, updates));
+      return;
+    }
+    const [{ db }, { menuCategoriesTable }, { eq }] = await Promise.all([
+      import("@workspace/db"),
+      import("@workspace/db/schema"),
+      import("drizzle-orm"),
+    ]);
     const [cat] = await db
       .update(menuCategoriesTable)
       .set(updates)
@@ -72,6 +105,16 @@ router.put("/menu/categories/:id", requireAdmin, async (req: Request, res: Respo
 router.delete("/menu/categories/:id", requireAdmin, async (req: Request, res: Response) => {
   const id = Number(req.params.id);
   try {
+    if (!useDatabase) {
+      await deleteLocalCategory(id);
+      res.json({ ok: true });
+      return;
+    }
+    const [{ db }, { menuCategoriesTable, menuItemsTable }, { eq }] = await Promise.all([
+      import("@workspace/db"),
+      import("@workspace/db/schema"),
+      import("drizzle-orm"),
+    ]);
     await db.delete(menuItemsTable).where(eq(menuItemsTable.categoryId, id));
     await db.delete(menuCategoriesTable).where(eq(menuCategoriesTable.id, id));
     res.json({ ok: true });
@@ -96,6 +139,22 @@ router.post("/menu/items", requireAdmin, async (req: Request, res: Response) => 
     return;
   }
   try {
+    if (!useDatabase) {
+      res.json(await addLocalItem({
+        categoryId,
+        nameTr,
+        nameEn,
+        descTr: descTr ?? "",
+        descEn: descEn ?? "",
+        photoUrl: photoUrl ?? null,
+        sortOrder: sortOrder ?? 0,
+      }));
+      return;
+    }
+    const [{ db }, { menuItemsTable }] = await Promise.all([
+      import("@workspace/db"),
+      import("@workspace/db/schema"),
+    ]);
     const [item] = await db
       .insert(menuItemsTable)
       .values({
@@ -135,6 +194,15 @@ router.put("/menu/items/:id", requireAdmin, async (req: Request, res: Response) 
     if (photoUrl !== undefined) updates["photoUrl"] = photoUrl;
     if (typeof sortOrder === "number") updates["sortOrder"] = sortOrder;
     if (typeof categoryId === "number") updates["categoryId"] = categoryId;
+    if (!useDatabase) {
+      res.json(await updateLocalItem(id, updates));
+      return;
+    }
+    const [{ db }, { menuItemsTable }, { eq }] = await Promise.all([
+      import("@workspace/db"),
+      import("@workspace/db/schema"),
+      import("drizzle-orm"),
+    ]);
     const [item] = await db
       .update(menuItemsTable)
       .set(updates)
@@ -150,6 +218,16 @@ router.put("/menu/items/:id", requireAdmin, async (req: Request, res: Response) 
 router.delete("/menu/items/:id", requireAdmin, async (req: Request, res: Response) => {
   const id = Number(req.params.id);
   try {
+    if (!useDatabase) {
+      await deleteLocalItem(id);
+      res.json({ ok: true });
+      return;
+    }
+    const [{ db }, { menuItemsTable }, { eq }] = await Promise.all([
+      import("@workspace/db"),
+      import("@workspace/db/schema"),
+      import("drizzle-orm"),
+    ]);
     await db.delete(menuItemsTable).where(eq(menuItemsTable.id, id));
     res.json({ ok: true });
   } catch (err) {

@@ -1,13 +1,26 @@
 import { Router, type IRouter, type Request, type Response } from "express";
-import { db } from "@workspace/db";
-import { galleryImagesTable } from "@workspace/db/schema";
-import { eq, asc } from "drizzle-orm";
 import { requireAdmin } from "./adminAuth";
+import {
+  addLocalGalleryImage,
+  deleteLocalGalleryImage,
+  getLocalGallery,
+  updateLocalGalleryImage,
+} from "../lib/localStore";
 
 const router: IRouter = Router();
+const useDatabase = Boolean(process.env.DATABASE_URL);
 
 router.get("/gallery", async (req: Request, res: Response) => {
   try {
+    if (!useDatabase) {
+      res.json(await getLocalGallery());
+      return;
+    }
+    const [{ db }, { galleryImagesTable }, { asc }] = await Promise.all([
+      import("@workspace/db"),
+      import("@workspace/db/schema"),
+      import("drizzle-orm"),
+    ]);
     const images = await db
       .select()
       .from(galleryImagesTable)
@@ -31,6 +44,14 @@ router.post("/gallery", requireAdmin, async (req: Request, res: Response) => {
     return;
   }
   try {
+    if (!useDatabase) {
+      res.json(await addLocalGalleryImage({ url, altTr: altTr ?? "", altEn: altEn ?? "", sortOrder: sortOrder ?? 0 }));
+      return;
+    }
+    const [{ db }, { galleryImagesTable }] = await Promise.all([
+      import("@workspace/db"),
+      import("@workspace/db/schema"),
+    ]);
     const [image] = await db
       .insert(galleryImagesTable)
       .values({ url, altTr: altTr ?? "", altEn: altEn ?? "", sortOrder: sortOrder ?? 0 })
@@ -54,6 +75,15 @@ router.put("/gallery/:id", requireAdmin, async (req: Request, res: Response) => 
     if (typeof altTr === "string") updates.altTr = altTr;
     if (typeof altEn === "string") updates.altEn = altEn;
     if (typeof sortOrder === "number") updates.sortOrder = sortOrder;
+    if (!useDatabase) {
+      res.json(await updateLocalGalleryImage(id, updates));
+      return;
+    }
+    const [{ db }, { galleryImagesTable }, { eq }] = await Promise.all([
+      import("@workspace/db"),
+      import("@workspace/db/schema"),
+      import("drizzle-orm"),
+    ]);
     const [image] = await db
       .update(galleryImagesTable)
       .set(updates)
@@ -69,6 +99,16 @@ router.put("/gallery/:id", requireAdmin, async (req: Request, res: Response) => 
 router.delete("/gallery/:id", requireAdmin, async (req: Request, res: Response) => {
   const id = Number(req.params.id);
   try {
+    if (!useDatabase) {
+      await deleteLocalGalleryImage(id);
+      res.json({ ok: true });
+      return;
+    }
+    const [{ db }, { galleryImagesTable }, { eq }] = await Promise.all([
+      import("@workspace/db"),
+      import("@workspace/db/schema"),
+      import("drizzle-orm"),
+    ]);
     await db.delete(galleryImagesTable).where(eq(galleryImagesTable.id, id));
     res.json({ ok: true });
   } catch (err) {

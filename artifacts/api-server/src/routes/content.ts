@@ -1,13 +1,20 @@
 import { Router, type IRouter, type Request, type Response } from "express";
-import { db } from "@workspace/db";
-import { siteContentTable } from "@workspace/db/schema";
-import { eq } from "drizzle-orm";
 import { requireAdmin } from "./adminAuth";
+import { getLocalContent, setLocalContent } from "../lib/localStore";
 
 const router: IRouter = Router();
+const useDatabase = Boolean(process.env.DATABASE_URL);
 
 router.get("/content", async (req: Request, res: Response) => {
   try {
+    if (!useDatabase) {
+      res.json(await getLocalContent());
+      return;
+    }
+    const [{ db }, { siteContentTable }] = await Promise.all([
+      import("@workspace/db"),
+      import("@workspace/db/schema"),
+    ]);
     const rows = await db.select().from(siteContentTable);
     const result: Record<string, { tr: string; en: string }> = {};
     for (const row of rows) {
@@ -29,6 +36,15 @@ router.put("/content/:key", requireAdmin, async (req: Request, res: Response) =>
     return;
   }
   try {
+    if (!useDatabase) {
+      await setLocalContent(key!, { tr, en });
+      res.json({ ok: true });
+      return;
+    }
+    const [{ db }, { siteContentTable }] = await Promise.all([
+      import("@workspace/db"),
+      import("@workspace/db/schema"),
+    ]);
     await db
       .insert(siteContentTable)
       .values({ key: key!, valueTr: tr, valueEn: en })

@@ -2,12 +2,13 @@ import { useState, useEffect, useRef } from "react";
 import { Link } from "wouter";
 import { ArrowLeft, Save, Trash2, Plus, Upload, Eye, EyeOff, Image, X, ChevronDown, ChevronUp } from "lucide-react";
 import { DEFAULTS } from "@/hooks/useSiteContent";
+import { DEFAULT_MENU } from "@/hooks/useMenuData";
 
 const API = "/api";
 
-function useAdminPassword() {
-  const [password, setPasswordState] = useState(() => sessionStorage.getItem("admin_pw") ?? "");
-  const [authed, setAuthed] = useState(false);
+function useAdminSession() {
+  const [token, setToken] = useState(() => sessionStorage.getItem("admin_token") ?? "");
+  const [authed, setAuthed] = useState(() => Boolean(sessionStorage.getItem("admin_token")));
   const [checking, setChecking] = useState(false);
   const [error, setError] = useState("");
 
@@ -15,10 +16,16 @@ function useAdminPassword() {
     setChecking(true);
     setError("");
     try {
-      const r = await fetch(`${API}/content`, { headers: { "x-admin-password": pw } });
+      const r = await fetch(`${API}/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: pw }),
+      });
       if (r.status === 401) { setError("Hatalı şifre / Wrong password"); return; }
-      sessionStorage.setItem("admin_pw", pw);
-      setPasswordState(pw);
+      if (!r.ok) { setError("Giris yapilamadi / Login failed"); return; }
+      const session = await r.json() as { token: string };
+      sessionStorage.setItem("admin_token", session.token);
+      setToken(session.token);
       setAuthed(true);
     } catch {
       setError("Bağlantı hatası / Connection error");
@@ -28,47 +35,51 @@ function useAdminPassword() {
   }
 
   function logout() {
-    sessionStorage.removeItem("admin_pw");
-    setPasswordState("");
+    sessionStorage.removeItem("admin_token");
+    setToken("");
     setAuthed(false);
   }
 
-  return { password, authed, checking, error, login, logout };
+  return { token, authed, checking, error, login, logout };
 }
 
-async function apiPut(path: string, body: unknown, pw: string) {
+function authHeaders(token: string) {
+  return { Authorization: `Bearer ${token}` };
+}
+
+async function apiPut(path: string, body: unknown, token: string) {
   const r = await fetch(`${API}${path}`, {
     method: "PUT",
-    headers: { "Content-Type": "application/json", "x-admin-password": pw },
+    headers: { "Content-Type": "application/json", ...authHeaders(token) },
     body: JSON.stringify(body),
   });
   if (!r.ok) throw new Error(await r.text());
   return r.json();
 }
 
-async function apiPost(path: string, body: unknown, pw: string) {
+async function apiPost(path: string, body: unknown, token: string) {
   const r = await fetch(`${API}${path}`, {
     method: "POST",
-    headers: { "Content-Type": "application/json", "x-admin-password": pw },
+    headers: { "Content-Type": "application/json", ...authHeaders(token) },
     body: JSON.stringify(body),
   });
   if (!r.ok) throw new Error(await r.text());
   return r.json();
 }
 
-async function apiDelete(path: string, pw: string) {
+async function apiDelete(path: string, token: string) {
   const r = await fetch(`${API}${path}`, {
     method: "DELETE",
-    headers: { "x-admin-password": pw },
+    headers: authHeaders(token),
   });
   if (!r.ok) throw new Error(await r.text());
   return r.json();
 }
 
-async function uploadImage(file: File, pw: string): Promise<string> {
+async function uploadImage(file: File, token: string): Promise<string> {
   const urlRes = await fetch(`${API}/storage/uploads/request-url`, {
     method: "POST",
-    headers: { "Content-Type": "application/json", "x-admin-password": pw },
+    headers: { "Content-Type": "application/json", ...authHeaders(token) },
     body: JSON.stringify({ name: file.name, size: file.size, contentType: file.type }),
   });
   if (!urlRes.ok) throw new Error("Upload URL alınamadı");
@@ -131,20 +142,33 @@ function Toast({ msg, ok }: { msg: string; ok: boolean }) {
 
 type ContentRecord = Record<string, { tr: string; en: string }>;
 
-function GeneralTab({ pw }: { pw: string }) {
-  const [content, setContent] = useState<ContentRecord>({});
+function contentDefaultsFor(keys: string[]): ContentRecord {
+  return Object.fromEntries(
+    keys.map((key) => [key, DEFAULTS[key] ?? { tr: "", en: "" }]),
+  );
+}
+
+function GeneralTab({ token }: { token: string }) {
+  const keys: Array<{ key: string; label: string; multiline?: boolean }> = [
+    { key: "hero.tagline", label: "Hero Tagline", multiline: true },
+    { key: "about.title", label: "Hakkımızda Başlık / About Title" },
+    { key: "about.p1", label: "Hakkımızda Paragraf 1 / About P1", multiline: true },
+    { key: "about.p2", label: "Hakkımızda Paragraf 2 / About P2", multiline: true },
+    { key: "footer.tagline", label: "Footer Tagline" },
+  ];
+  const contentKeys = keys.map(({ key }) => key);
+  const [content, setContent] = useState<ContentRecord>(() => contentDefaultsFor(contentKeys));
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
 
   useEffect(() => {
     fetch(`${API}/content`).then(r => r.json()).then((d: ContentRecord) => {
       const merged: ContentRecord = {};
-      const keys = ["hero.tagline", "about.title", "about.p1", "about.p2", "footer.tagline"];
-      for (const k of keys) {
+      for (const k of contentKeys) {
         merged[k] = d[k] ?? DEFAULTS[k] ?? { tr: "", en: "" };
       }
       setContent(merged);
-    });
+    }).catch(() => setContent(contentDefaultsFor(contentKeys)));
   }, []);
 
   function update(key: string, lang: "tr" | "en", val: string) {
@@ -155,7 +179,7 @@ function GeneralTab({ pw }: { pw: string }) {
     setSaving(true);
     try {
       for (const [key, val] of Object.entries(content)) {
-        await apiPut(`/content/${encodeURIComponent(key)}`, { tr: val.tr, en: val.en }, pw);
+        await apiPut(`/content/${encodeURIComponent(key)}`, { tr: val.tr, en: val.en }, token);
       }
       setToast({ msg: "Kaydedildi!", ok: true });
     } catch {
@@ -165,14 +189,6 @@ function GeneralTab({ pw }: { pw: string }) {
       setTimeout(() => setToast(null), 3000);
     }
   }
-
-  const keys: Array<{ key: string; label: string; multiline?: boolean }> = [
-    { key: "hero.tagline", label: "Hero Tagline", multiline: true },
-    { key: "about.title", label: "Hakkımızda Başlık / About Title" },
-    { key: "about.p1", label: "Hakkımızda Paragraf 1 / About P1", multiline: true },
-    { key: "about.p2", label: "Hakkımızda Paragraf 2 / About P2", multiline: true },
-    { key: "footer.tagline", label: "Footer Tagline" },
-  ];
 
   return (
     <div className="space-y-8">
@@ -193,19 +209,18 @@ function GeneralTab({ pw }: { pw: string }) {
   );
 }
 
-function ContactTab({ pw }: { pw: string }) {
-  const [content, setContent] = useState<ContentRecord>({});
+function ContactTab({ token }: { token: string }) {
+  const keys = ["visit.address", "visit.weekdays", "visit.weekend", "visit.email", "visit.phone", "contact.instagram"];
+  const [content, setContent] = useState<ContentRecord>(() => contentDefaultsFor(keys));
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
-
-  const keys = ["visit.address", "visit.weekdays", "visit.weekend", "visit.email", "visit.phone", "contact.instagram"];
 
   useEffect(() => {
     fetch(`${API}/content`).then(r => r.json()).then((d: ContentRecord) => {
       const merged: ContentRecord = {};
       for (const k of keys) merged[k] = d[k] ?? DEFAULTS[k] ?? { tr: "", en: "" };
       setContent(merged);
-    });
+    }).catch(() => setContent(contentDefaultsFor(keys)));
   }, []);
 
   function update(key: string, lang: "tr" | "en", val: string) {
@@ -216,7 +231,7 @@ function ContactTab({ pw }: { pw: string }) {
     setSaving(true);
     try {
       for (const [key, val] of Object.entries(content)) {
-        await apiPut(`/content/${encodeURIComponent(key)}`, { tr: val.tr, en: val.en }, pw);
+        await apiPut(`/content/${encodeURIComponent(key)}`, { tr: val.tr, en: val.en }, token);
       }
       setToast({ msg: "Kaydedildi!", ok: true });
     } catch {
@@ -261,7 +276,7 @@ function ContactTab({ pw }: { pw: string }) {
 
 interface GalleryImage { id: number; url: string; altTr: string; altEn: string; sortOrder: number; }
 
-function GalleryTab({ pw }: { pw: string }) {
+function GalleryTab({ token }: { token: string }) {
   const [images, setImages] = useState<GalleryImage[]>([]);
   const [uploading, setUploading] = useState(false);
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
@@ -278,9 +293,9 @@ function GalleryTab({ pw }: { pw: string }) {
   async function handleUpload(file: File) {
     setUploading(true);
     try {
-      const objectPath = await uploadImage(file, pw);
+      const objectPath = await uploadImage(file, token);
       const imgUrl = `/api/storage/objects/${objectPath.replace(/^\/objects\//, "")}`;
-      await apiPost("/gallery", { url: imgUrl, altTr: file.name, altEn: file.name, sortOrder: images.length }, pw);
+      await apiPost("/gallery", { url: imgUrl, altTr: file.name, altEn: file.name, sortOrder: images.length }, token);
       load();
       setToast({ msg: "Yüklendi!", ok: true });
     } catch {
@@ -294,7 +309,7 @@ function GalleryTab({ pw }: { pw: string }) {
   async function handleDelete(id: number) {
     if (!confirm("Bu resmi sil? / Delete this image?")) return;
     try {
-      await apiDelete(`/gallery/${id}`, pw);
+      await apiDelete(`/gallery/${id}`, token);
       load();
       setToast({ msg: "Silindi", ok: true });
     } catch {
@@ -307,7 +322,7 @@ function GalleryTab({ pw }: { pw: string }) {
   async function updateAlt(img: GalleryImage, field: "altTr" | "altEn", val: string) {
     const updated = { ...img, [field]: val };
     setImages(prev => prev.map(i => i.id === img.id ? updated : i));
-    await apiPut(`/gallery/${img.id}`, { [field]: val }, pw).catch(() => {});
+    await apiPut(`/gallery/${img.id}`, { [field]: val }, token).catch(() => {});
   }
 
   return (
@@ -382,7 +397,7 @@ interface ApiItem { id: number; categoryId: number; nameTr: string; nameEn: stri
 type CatEdit = { nameTr: string; nameEn: string };
 type ItemEdit = { nameTr: string; nameEn: string; descTr: string; descEn: string };
 
-function MenuTab({ pw }: { pw: string }) {
+function MenuTab({ token }: { token: string }) {
   const [categories, setCategories] = useState<ApiCategory[]>([]);
   const [items, setItems] = useState<ApiItem[]>([]);
   const [catEdits, setCatEdits] = useState<Record<number, CatEdit>>({});
@@ -401,24 +416,25 @@ function MenuTab({ pw }: { pw: string }) {
 
   function load() {
     fetch(`${API}/menu`).then(r => r.json()).then((d: { categories: ApiCategory[]; items: ApiItem[] }) => {
-      const cats = d.categories ?? [];
-      const itms = d.items ?? [];
+      const cats = d.categories?.length ? d.categories : DEFAULT_MENU.categories;
+      const itms = d.items?.length ? d.items : DEFAULT_MENU.items;
       setCategories(cats);
       setItems(itms);
-      setCatEdits(prev => {
-        const next: Record<number, CatEdit> = { ...prev };
-        for (const c of cats) {
-          if (!next[c.id]) next[c.id] = { nameTr: c.nameTr, nameEn: c.nameEn };
-        }
-        return next;
-      });
-      setItemEdits(prev => {
-        const next: Record<number, ItemEdit> = { ...prev };
-        for (const i of itms) {
-          if (!next[i.id]) next[i.id] = { nameTr: i.nameTr, nameEn: i.nameEn, descTr: i.descTr, descEn: i.descEn };
-        }
-        return next;
-      });
+      setCatEdits(Object.fromEntries(
+        cats.map((c) => [c.id, { nameTr: c.nameTr, nameEn: c.nameEn }]),
+      ));
+      setItemEdits(Object.fromEntries(
+        itms.map((i) => [i.id, { nameTr: i.nameTr, nameEn: i.nameEn, descTr: i.descTr, descEn: i.descEn }]),
+      ));
+    }).catch(() => {
+      setCategories(DEFAULT_MENU.categories);
+      setItems(DEFAULT_MENU.items);
+      setCatEdits(Object.fromEntries(
+        DEFAULT_MENU.categories.map((c) => [c.id, { nameTr: c.nameTr, nameEn: c.nameEn }]),
+      ));
+      setItemEdits(Object.fromEntries(
+        DEFAULT_MENU.items.map((i) => [i.id, { nameTr: i.nameTr, nameEn: i.nameEn, descTr: i.descTr, descEn: i.descEn }]),
+      ));
     });
   }
 
@@ -427,7 +443,7 @@ function MenuTab({ pw }: { pw: string }) {
   async function addCategory() {
     if (!newCat.nameTr || !newCat.nameEn) return;
     try {
-      await apiPost("/menu/categories", { ...newCat, sortOrder: categories.length }, pw);
+      await apiPost("/menu/categories", { ...newCat, sortOrder: categories.length }, token);
       setNewCat({ nameTr: "", nameEn: "" });
       load();
       showToast("Kategori eklendi!");
@@ -437,7 +453,7 @@ function MenuTab({ pw }: { pw: string }) {
   async function deleteCategory(id: number) {
     if (!confirm("Kategori ve tüm ürünlerini sil? / Delete category and all its items?")) return;
     try {
-      await apiDelete(`/menu/categories/${id}`, pw);
+      await apiDelete(`/menu/categories/${id}`, token);
       load();
       showToast("Silindi");
     } catch { showToast("Hata", false); }
@@ -445,7 +461,7 @@ function MenuTab({ pw }: { pw: string }) {
 
   async function updateCategory(id: number, nameTr: string, nameEn: string) {
     try {
-      await apiPut(`/menu/categories/${id}`, { nameTr, nameEn }, pw);
+      await apiPut(`/menu/categories/${id}`, { nameTr, nameEn }, token);
       showToast("Kaydedildi!");
     } catch { showToast("Hata", false); }
   }
@@ -453,7 +469,7 @@ function MenuTab({ pw }: { pw: string }) {
   async function addItem(categoryId: number) {
     if (!newItem.nameTr || !newItem.nameEn) return;
     try {
-      await apiPost("/menu/items", { ...newItem, categoryId, sortOrder: items.filter(i => i.categoryId === categoryId).length }, pw);
+      await apiPost("/menu/items", { ...newItem, categoryId, sortOrder: items.filter(i => i.categoryId === categoryId).length }, token);
       setNewItem({ nameTr: "", nameEn: "", descTr: "", descEn: "" });
       setAddingItem(null);
       load();
@@ -464,7 +480,7 @@ function MenuTab({ pw }: { pw: string }) {
   async function deleteItem(id: number) {
     if (!confirm("Bu ürünü sil? / Delete this item?")) return;
     try {
-      await apiDelete(`/menu/items/${id}`, pw);
+      await apiDelete(`/menu/items/${id}`, token);
       load();
       showToast("Silindi");
     } catch { showToast("Hata", false); }
@@ -473,14 +489,14 @@ function MenuTab({ pw }: { pw: string }) {
   async function updateItem(item: ApiItem, field: string, val: string) {
     const updated = { ...item, [field]: val };
     setItems(prev => prev.map(i => i.id === item.id ? updated : i));
-    await apiPut(`/menu/items/${item.id}`, { [field]: val }, pw).catch(() => {});
+    await apiPut(`/menu/items/${item.id}`, { [field]: val }, token).catch(() => {});
   }
 
   async function uploadItemPhoto(item: ApiItem, file: File) {
     try {
-      const objectPath = await uploadImage(file, pw);
+      const objectPath = await uploadImage(file, token);
       const imgUrl = `/api/storage/objects/${objectPath.replace(/^\/objects\//, "")}`;
-      await apiPut(`/menu/items/${item.id}`, { photoUrl: imgUrl }, pw);
+      await apiPut(`/menu/items/${item.id}`, { photoUrl: imgUrl }, token);
       setItems(prev => prev.map(i => i.id === item.id ? { ...i, photoUrl: imgUrl } : i));
       showToast("Fotoğraf yüklendi!");
     } catch { showToast("Yükleme hatası", false); }
@@ -673,7 +689,7 @@ function MenuTab({ pw }: { pw: string }) {
 type Tab = "general" | "contact" | "gallery" | "menu";
 
 export default function Admin() {
-  const { password, authed, checking, error, login, logout } = useAdminPassword();
+  const { token, authed, checking, error, login, logout } = useAdminSession();
   const [pw, setPw] = useState("");
   const [showPw, setShowPw] = useState(false);
   const [activeTab, setActiveTab] = useState<Tab>("general");
@@ -713,9 +729,6 @@ export default function Admin() {
               {checking ? "…" : "Giriş Yap / Login"}
             </button>
           </div>
-          <p className="text-center text-xs text-muted-foreground font-sans">
-            Şifreyi Replit Secrets'ta ADMIN_PASSWORD olarak ayarlayın.
-          </p>
         </div>
       </div>
     );
@@ -763,10 +776,10 @@ export default function Admin() {
           ))}
         </div>
 
-        {activeTab === "general" && <GeneralTab pw={password} />}
-        {activeTab === "contact" && <ContactTab pw={password} />}
-        {activeTab === "gallery" && <GalleryTab pw={password} />}
-        {activeTab === "menu" && <MenuTab pw={password} />}
+        {activeTab === "general" && <GeneralTab token={token} />}
+        {activeTab === "contact" && <ContactTab token={token} />}
+        {activeTab === "gallery" && <GalleryTab token={token} />}
+        {activeTab === "menu" && <MenuTab token={token} />}
       </div>
     </div>
   );
