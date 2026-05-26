@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { apiUrl, mediaUrl } from "@/lib/api";
 
 export interface GalleryImage {
   id: number;
@@ -23,11 +24,11 @@ export function useGalleryData() {
   const [images, setImages] = useState<GalleryImage[]>(DEFAULT_GALLERY);
 
   useEffect(() => {
-    fetch("/api/gallery")
+    fetch(apiUrl("/api/gallery"))
       .then((r) => r.json())
       .then((data: GalleryImage[]) => {
         if (Array.isArray(data) && data.length > 0) {
-          setImages(data);
+          setImages(data.map((image) => ({ ...image, url: mediaUrl(image.url) ?? image.url })));
         }
       })
       .catch(() => {});

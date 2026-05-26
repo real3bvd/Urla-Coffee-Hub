@@ -3,6 +3,7 @@ import { Link } from "wouter";
 import { ArrowLeft, Save, Trash2, Plus, Upload, Eye, EyeOff, Image, X, ChevronDown, ChevronUp } from "lucide-react";
 import { DEFAULTS } from "@/hooks/useSiteContent";
 import { DEFAULT_MENU } from "@/hooks/useMenuData";
+import { apiUrl, mediaUrl } from "@/lib/api";
 
 const API = "/api";
 
@@ -16,7 +17,7 @@ function useAdminSession() {
     setChecking(true);
     setError("");
     try {
-      const r = await fetch(`${API}/auth/login`, {
+      const r = await fetch(apiUrl(`${API}/auth/login`), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ password: pw }),
@@ -48,7 +49,7 @@ function authHeaders(token: string) {
 }
 
 async function apiPut(path: string, body: unknown, token: string) {
-  const r = await fetch(`${API}${path}`, {
+  const r = await fetch(apiUrl(`${API}${path}`), {
     method: "PUT",
     headers: { "Content-Type": "application/json", ...authHeaders(token) },
     body: JSON.stringify(body),
@@ -58,7 +59,7 @@ async function apiPut(path: string, body: unknown, token: string) {
 }
 
 async function apiPost(path: string, body: unknown, token: string) {
-  const r = await fetch(`${API}${path}`, {
+  const r = await fetch(apiUrl(`${API}${path}`), {
     method: "POST",
     headers: { "Content-Type": "application/json", ...authHeaders(token) },
     body: JSON.stringify(body),
@@ -68,7 +69,7 @@ async function apiPost(path: string, body: unknown, token: string) {
 }
 
 async function apiDelete(path: string, token: string) {
-  const r = await fetch(`${API}${path}`, {
+  const r = await fetch(apiUrl(`${API}${path}`), {
     method: "DELETE",
     headers: authHeaders(token),
   });
@@ -77,14 +78,14 @@ async function apiDelete(path: string, token: string) {
 }
 
 async function uploadImage(file: File, token: string): Promise<string> {
-  const urlRes = await fetch(`${API}/storage/uploads/request-url`, {
+  const urlRes = await fetch(apiUrl(`${API}/storage/uploads/request-url`), {
     method: "POST",
     headers: { "Content-Type": "application/json", ...authHeaders(token) },
     body: JSON.stringify({ name: file.name, size: file.size, contentType: file.type }),
   });
   if (!urlRes.ok) throw new Error("Upload URL alınamadı");
   const { uploadURL, objectPath } = await urlRes.json() as { uploadURL: string; objectPath: string };
-  const put = await fetch(uploadURL, { method: "PUT", body: file, headers: { "Content-Type": file.type } });
+  const put = await fetch(apiUrl(uploadURL), { method: "PUT", body: file, headers: { "Content-Type": file.type } });
   if (!put.ok) throw new Error("Dosya yüklenemedi");
   return objectPath;
 }
@@ -162,7 +163,7 @@ function GeneralTab({ token }: { token: string }) {
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
 
   useEffect(() => {
-    fetch(`${API}/content`).then(r => r.json()).then((d: ContentRecord) => {
+    fetch(apiUrl(`${API}/content`)).then(r => r.json()).then((d: ContentRecord) => {
       const merged: ContentRecord = {};
       for (const k of contentKeys) {
         merged[k] = d[k] ?? DEFAULTS[k] ?? { tr: "", en: "" };
@@ -216,7 +217,7 @@ function ContactTab({ token }: { token: string }) {
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
 
   useEffect(() => {
-    fetch(`${API}/content`).then(r => r.json()).then((d: ContentRecord) => {
+    fetch(apiUrl(`${API}/content`)).then(r => r.json()).then((d: ContentRecord) => {
       const merged: ContentRecord = {};
       for (const k of keys) merged[k] = d[k] ?? DEFAULTS[k] ?? { tr: "", en: "" };
       setContent(merged);
@@ -283,8 +284,8 @@ function GalleryTab({ token }: { token: string }) {
   const fileRef = useRef<HTMLInputElement>(null);
 
   function load() {
-    fetch(`${API}/gallery`).then(r => r.json()).then((d: GalleryImage[]) => {
-      setImages(Array.isArray(d) ? d : []);
+    fetch(apiUrl(`${API}/gallery`)).then(r => r.json()).then((d: GalleryImage[]) => {
+      setImages(Array.isArray(d) ? d.map((image) => ({ ...image, url: mediaUrl(image.url) ?? image.url })) : []);
     });
   }
 
@@ -352,7 +353,7 @@ function GalleryTab({ token }: { token: string }) {
         {images.map(img => (
           <div key={img.id} className="border border-border rounded overflow-hidden group">
             <div className="relative aspect-[4/3] overflow-hidden bg-muted">
-              <img src={img.url} alt={img.altTr} className="w-full h-full object-cover" />
+              <img src={mediaUrl(img.url) ?? img.url} alt={img.altTr} className="w-full h-full object-cover" />
               <button
                 onClick={() => handleDelete(img.id)}
                 className="absolute top-2 right-2 bg-black/60 text-white rounded p-1.5 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
@@ -415,9 +416,9 @@ function MenuTab({ token }: { token: string }) {
   }
 
   function load() {
-    fetch(`${API}/menu`).then(r => r.json()).then((d: { categories: ApiCategory[]; items: ApiItem[] }) => {
+    fetch(apiUrl(`${API}/menu`)).then(r => r.json()).then((d: { categories: ApiCategory[]; items: ApiItem[] }) => {
       const cats = d.categories?.length ? d.categories : DEFAULT_MENU.categories;
-      const itms = d.items?.length ? d.items : DEFAULT_MENU.items;
+      const itms = d.items?.length ? d.items.map((item) => ({ ...item, photoUrl: mediaUrl(item.photoUrl) })) : DEFAULT_MENU.items;
       setCategories(cats);
       setItems(itms);
       setCatEdits(Object.fromEntries(
@@ -578,7 +579,7 @@ function MenuTab({ token }: { token: string }) {
                       <div className="flex items-start gap-3">
                         <div className="w-16 h-16 shrink-0 bg-muted rounded overflow-hidden relative group">
                           {item.photoUrl
-                            ? <img src={item.photoUrl} alt={item.nameTr} className="w-full h-full object-cover" />
+                            ? <img src={mediaUrl(item.photoUrl) ?? item.photoUrl} alt={item.nameTr} className="w-full h-full object-cover" />
                             : <div className="w-full h-full flex items-center justify-center"><Image className="w-6 h-6 text-muted-foreground/40" /></div>
                           }
                           <button

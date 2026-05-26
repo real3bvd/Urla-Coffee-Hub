@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { apiUrl, mediaUrl } from "@/lib/api";
 
 export interface ApiMenuCategory {
   id: number;
@@ -57,11 +58,14 @@ export function useMenuData() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("/api/menu")
+    fetch(apiUrl("/api/menu"))
       .then((r) => r.json())
       .then((data: MenuData) => {
         if (data?.categories?.length > 0) {
-          setMenuData(data);
+          setMenuData({
+            ...data,
+            items: data.items.map((item) => ({ ...item, photoUrl: mediaUrl(item.photoUrl) })),
+          });
         } else {
           setMenuData(DEFAULT_MENU);
         }

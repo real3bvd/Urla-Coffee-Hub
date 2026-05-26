@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { apiUrl } from "@/lib/api";
 
 type Lang = "tr" | "en";
 
@@ -36,7 +37,7 @@ export function useSiteContent(lang: Lang) {
   const [content, setContent] = useState<ContentRecord>(DEFAULTS);
 
   useEffect(() => {
-    fetch("/api/content")
+    fetch(apiUrl("/api/content"))
       .then((r) => r.json())
       .then((data: ContentRecord) => {
         if (data && typeof data === "object") {
