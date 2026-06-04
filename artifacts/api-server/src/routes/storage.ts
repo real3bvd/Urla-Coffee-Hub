@@ -1,7 +1,12 @@
 import { randomUUID } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
-import express, { Router, type IRouter, type Request, type Response } from "express";
+import express, {
+  Router,
+  type IRouter,
+  type Request,
+  type Response,
+} from "express";
 import {
   RequestUploadUrlBody,
   RequestUploadUrlResponse,
@@ -10,38 +15,45 @@ import {
 const router: IRouter = Router();
 const localUploadsDir = path.resolve(process.cwd(), ".local", "uploads");
 
-router.post("/storage/uploads/request-url", async (req: Request, res: Response) => {
-  const parsed = RequestUploadUrlBody.safeParse(req.body);
-  if (!parsed.success) {
-    res.status(400).json({ error: "Missing or invalid required fields" });
-    return;
-  }
+router.post(
+  "/storage/uploads/request-url",
+  async (req: Request, res: Response) => {
+    const parsed = RequestUploadUrlBody.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: "Missing or invalid required fields" });
+      return;
+    }
 
-  try {
-    const { name, size, contentType } = parsed.data;
-    const objectId = randomUUID();
-    const objectPath = `/objects/uploads/${objectId}-${name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
-    const uploadURL = `/api/storage/local-uploads/${encodeURIComponent(objectPath.replace(/^\/objects\//, ""))}`;
+    try {
+      const { name, size, contentType } = parsed.data;
+      const objectId = randomUUID();
+      const objectPath = `/objects/uploads/${objectId}-${name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
+      const uploadURL = `/api/storage/local-uploads/${encodeURIComponent(objectPath.replace(/^\/objects\//, ""))}`;
 
-    res.json(
-      RequestUploadUrlResponse.parse({
-        uploadURL,
-        objectPath,
-        metadata: { name, size, contentType },
-      }),
-    );
-  } catch (error) {
-    req.log.error({ err: error }, "Error generating upload URL");
-    res.status(500).json({ error: "Failed to generate upload URL" });
-  }
-});
+      res.json(
+        RequestUploadUrlResponse.parse({
+          uploadURL,
+          objectPath,
+          metadata: { name, size, contentType },
+        }),
+      );
+    } catch (error) {
+      req.log.error({ err: error }, "Error generating upload URL");
+      res.status(500).json({ error: "Failed to generate upload URL" });
+    }
+  },
+);
 
 router.put(
   "/storage/local-uploads/:objectPath",
   express.raw({ type: "*/*", limit: "20mb" }),
   async (req: Request, res: Response) => {
     const rawObjectPath = req.params.objectPath;
-    const objectPath = decodeURIComponent(Array.isArray(rawObjectPath) ? rawObjectPath.join("/") : rawObjectPath ?? "");
+    const objectPath = decodeURIComponent(
+      Array.isArray(rawObjectPath)
+        ? rawObjectPath.join("/")
+        : (rawObjectPath ?? ""),
+    );
     const target = path.resolve(localUploadsDir, objectPath);
 
     if (!target.startsWith(localUploadsDir)) {

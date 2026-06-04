@@ -25,7 +25,9 @@ const localEnv = loadLocalEnv();
 const adminPassword = process.env.ADMIN_PASSWORD ?? localEnv.ADMIN_PASSWORD;
 
 if (!adminPassword) {
-  console.error("ADMIN_PASSWORD is missing. Add it to .local/dev.env or set it in the terminal.");
+  console.error(
+    "ADMIN_PASSWORD is missing. Add it to .local/dev.env or set it in the terminal.",
+  );
   process.exit(1);
 }
 
@@ -34,7 +36,11 @@ const services = [
     name: "API",
     port: 5000,
     args: ["pnpm", "--filter", "@workspace/api-server", "run", "dev"],
-    env: { PORT: "5000", NODE_ENV: "development", ADMIN_PASSWORD: adminPassword },
+    env: {
+      PORT: "5000",
+      NODE_ENV: "development",
+      ADMIN_PASSWORD: adminPassword,
+    },
   },
   {
     name: "Website",
@@ -74,7 +80,9 @@ function startService(service) {
 async function main() {
   for (const service of services) {
     if (await isPortOpen(service.port)) {
-      console.log(`${service.name} already running on port ${service.port}; using it.`);
+      console.log(
+        `${service.name} already running on port ${service.port}; using it.`,
+      );
       continue;
     }
     console.log(`Starting ${service.name} on port ${service.port}...`);

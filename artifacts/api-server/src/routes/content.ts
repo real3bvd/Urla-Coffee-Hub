@@ -27,36 +27,40 @@ router.get("/content", async (req: Request, res: Response) => {
   }
 });
 
-router.put("/content/:key", requireAdmin, async (req: Request, res: Response) => {
-  const rawKey = req.params["key"];
-  const key = Array.isArray(rawKey) ? rawKey[0] : rawKey;
-  const { tr, en } = req.body as { tr?: string; en?: string };
-  if (typeof tr !== "string" || typeof en !== "string") {
-    res.status(400).json({ error: "tr and en are required strings" });
-    return;
-  }
-  try {
-    if (!useDatabase) {
-      await setLocalContent(key!, { tr, en });
-      res.json({ ok: true });
+router.put(
+  "/content/:key",
+  requireAdmin,
+  async (req: Request, res: Response) => {
+    const rawKey = req.params["key"];
+    const key = Array.isArray(rawKey) ? rawKey[0] : rawKey;
+    const { tr, en } = req.body as { tr?: string; en?: string };
+    if (typeof tr !== "string" || typeof en !== "string") {
+      res.status(400).json({ error: "tr and en are required strings" });
       return;
     }
-    const [{ db }, { siteContentTable }] = await Promise.all([
-      import("@workspace/db"),
-      import("@workspace/db/schema"),
-    ]);
-    await db
-      .insert(siteContentTable)
-      .values({ key: key!, valueTr: tr, valueEn: en })
-      .onConflictDoUpdate({
-        target: siteContentTable.key,
-        set: { valueTr: tr, valueEn: en, updatedAt: new Date() },
-      });
-    res.json({ ok: true });
-  } catch (err) {
-    req.log.error({ err }, "Error updating content");
-    res.status(500).json({ error: "Failed to update content" });
-  }
-});
+    try {
+      if (!useDatabase) {
+        await setLocalContent(key!, { tr, en });
+        res.json({ ok: true });
+        return;
+      }
+      const [{ db }, { siteContentTable }] = await Promise.all([
+        import("@workspace/db"),
+        import("@workspace/db/schema"),
+      ]);
+      await db
+        .insert(siteContentTable)
+        .values({ key: key!, valueTr: tr, valueEn: en })
+        .onConflictDoUpdate({
+          target: siteContentTable.key,
+          set: { valueTr: tr, valueEn: en, updatedAt: new Date() },
+        });
+      res.json({ ok: true });
+    } catch (err) {
+      req.log.error({ err }, "Error updating content");
+      res.status(500).json({ error: "Failed to update content" });
+    }
+  },
+);
 
 export default router;

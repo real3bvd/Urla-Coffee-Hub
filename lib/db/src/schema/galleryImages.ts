@@ -11,6 +11,8 @@ export const galleryImagesTable = pgTable("gallery_images", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-export const insertGalleryImageSchema = createInsertSchema(galleryImagesTable).omit({ id: true, createdAt: true });
+export const insertGalleryImageSchema = createInsertSchema(
+  galleryImagesTable,
+).omit({ id: true, createdAt: true });
 export type InsertGalleryImage = z.infer<typeof insertGalleryImageSchema>;
 export type GalleryImage = typeof galleryImagesTable.$inferSelect;

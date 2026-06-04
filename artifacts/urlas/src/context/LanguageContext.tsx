@@ -61,7 +61,8 @@ const tr: Translations = {
     visit: "Bizi Bul",
   },
   hero: {
-    tagline: "Sıradan değil, özenle hazırlanmış. Tıpkı doğru çekilen mükemmel bir espresso gibi.",
+    tagline:
+      "Sıradan değil, özenle hazırlanmış. Tıpkı doğru çekilen mükemmel bir espresso gibi.",
     discover: "Keşfet",
   },
   about: {
@@ -78,7 +79,8 @@ const tr: Translations = {
     location: "Konum",
     hours: "Çalışma Saatleri",
     contact: "İletişim",
-    address: "Merkez Mah. Ayazma Cad.\nIlgın Sokak NEF11 C Blok\n34406 Kağıthane / İstanbul",
+    address:
+      "Merkez Mah. Ayazma Cad.\nIlgın Sokak NEF11 C Blok\n34406 Kağıthane / İstanbul",
     weekdays: "Pzt–Cum  07:00–21:00",
     weekend: "Cmt–Paz  08:00–22:00",
     email: "hello@urlas.com",
@@ -102,22 +104,55 @@ const tr: Translations = {
     },
     items: {
       espresso: { name: "Espresso", desc: "İmza harmanlamamızın çift şotu" },
-      macchiato: { name: "Macchiato", desc: "Bir miktar buharda ısıtılmış sütle işaretlenmiş espresso" },
+      macchiato: {
+        name: "Macchiato",
+        desc: "Bir miktar buharda ısıtılmış sütle işaretlenmiş espresso",
+      },
       cortado: { name: "Cortado", desc: "Eşit oranlarda espresso ve ılık süt" },
-      cappuccino: { name: "Cappuccino", desc: "Yoğun havalandırılmış sütlü espresso" },
+      cappuccino: {
+        name: "Cappuccino",
+        desc: "Yoğun havalandırılmış sütlü espresso",
+      },
       latte: { name: "Latte", desc: "Hafifçe havalandırılmış sütlü espresso" },
-      coldBrew: { name: "Ev Yapımı Cold Brew", desc: "18 saat yavaş demlenen, zengin ve yumuşak içim" },
-      nitroCold: { name: "Nitro Cold Brew", desc: "Kremamsı bir doku için azotla zenginleştirilmiş" },
+      coldBrew: {
+        name: "Ev Yapımı Cold Brew",
+        desc: "18 saat yavaş demlenen, zengin ve yumuşak içim",
+      },
+      nitroCold: {
+        name: "Nitro Cold Brew",
+        desc: "Kremamsı bir doku için azotla zenginleştirilmiş",
+      },
       icedLatte: { name: "Buzlu Latte", desc: "Buz üzerine espresso ve süt" },
       pourOver: { name: "Pour Over", desc: "Tek kökenli döner seçim" },
       batchBrew: { name: "Günlük Demleme", desc: "Günlük damlatma kahvemiz" },
-      chemex: { name: "Chemex", desc: "İki kişilik temiz ve parlak ekstraksiyon" },
-      matcha: { name: "Matcha Latte", desc: "Seremoniyel kalitede matcha ve buharda ısıtılmış süt" },
-      chai: { name: "Chai Latte", desc: "Baharatlı siyah çay karışımı ve buharda ısıtılmış süt" },
-      hotChocolate: { name: "Sıcak Çikolata", desc: "Buharda ısıtılmış süte eritilmiş zengin bitter çikolata" },
-      butterCroissant: { name: "Tereyağlı Kruvasan", desc: "Pul pul, tereyağlı, her gün taze pişirilmiş" },
-      almondCroissant: { name: "Bademli Kruvasan", desc: "Badem franjipanesine iki kez batırılmış" },
-      avocadoToast: { name: "Avokadolu Tost", desc: "Ekşi maya ekmeği, ezilmiş avokado, pul biber, zeytinyağı" },
+      chemex: {
+        name: "Chemex",
+        desc: "İki kişilik temiz ve parlak ekstraksiyon",
+      },
+      matcha: {
+        name: "Matcha Latte",
+        desc: "Seremoniyel kalitede matcha ve buharda ısıtılmış süt",
+      },
+      chai: {
+        name: "Chai Latte",
+        desc: "Baharatlı siyah çay karışımı ve buharda ısıtılmış süt",
+      },
+      hotChocolate: {
+        name: "Sıcak Çikolata",
+        desc: "Buharda ısıtılmış süte eritilmiş zengin bitter çikolata",
+      },
+      butterCroissant: {
+        name: "Tereyağlı Kruvasan",
+        desc: "Pul pul, tereyağlı, her gün taze pişirilmiş",
+      },
+      almondCroissant: {
+        name: "Bademli Kruvasan",
+        desc: "Badem franjipanesine iki kez batırılmış",
+      },
+      avocadoToast: {
+        name: "Avokadolu Tost",
+        desc: "Ekşi maya ekmeği, ezilmiş avokado, pul biber, zeytinyağı",
+      },
     },
   },
 };
@@ -129,7 +164,8 @@ const en: Translations = {
     visit: "Visit Us",
   },
   hero: {
-    tagline: "Unpretentious but carefully crafted. Like the perfect espresso pulled just right.",
+    tagline:
+      "Unpretentious but carefully crafted. Like the perfect espresso pulled just right.",
     discover: "Discover",
   },
   about: {
@@ -146,7 +182,8 @@ const en: Translations = {
     location: "Location",
     hours: "Opening Hours",
     contact: "Contact",
-    address: "Merkez Mah. Ayazma Cad.\nIlgın Sokak NEF11 C Blok\n34406 Kağıthane / Istanbul",
+    address:
+      "Merkez Mah. Ayazma Cad.\nIlgın Sokak NEF11 C Blok\n34406 Kağıthane / Istanbul",
     weekdays: "Mon–Fri  7:00–21:00",
     weekend: "Sat–Sun  8:00–22:00",
     email: "hello@urlas.com",
@@ -169,23 +206,56 @@ const en: Translations = {
       pastries: "Pastries & Food",
     },
     items: {
-      espresso: { name: "Espresso", desc: "A double shot of our signature house blend" },
-      macchiato: { name: "Macchiato", desc: "Espresso marked with a dollop of steamed milk" },
+      espresso: {
+        name: "Espresso",
+        desc: "A double shot of our signature house blend",
+      },
+      macchiato: {
+        name: "Macchiato",
+        desc: "Espresso marked with a dollop of steamed milk",
+      },
       cortado: { name: "Cortado", desc: "Equal parts espresso and warm milk" },
-      cappuccino: { name: "Cappuccino", desc: "Espresso with heavily aerated milk" },
+      cappuccino: {
+        name: "Cappuccino",
+        desc: "Espresso with heavily aerated milk",
+      },
       latte: { name: "Latte", desc: "Espresso with lightly aerated milk" },
-      coldBrew: { name: "House Cold Brew", desc: "Slow-steeped for 18 hours, rich and smooth" },
-      nitroCold: { name: "Nitro Cold Brew", desc: "Infused with nitrogen for a creamy texture" },
+      coldBrew: {
+        name: "House Cold Brew",
+        desc: "Slow-steeped for 18 hours, rich and smooth",
+      },
+      nitroCold: {
+        name: "Nitro Cold Brew",
+        desc: "Infused with nitrogen for a creamy texture",
+      },
       icedLatte: { name: "Iced Latte", desc: "Espresso and milk over ice" },
       pourOver: { name: "Pour Over", desc: "Single-origin rotating selection" },
       batchBrew: { name: "Batch Brew", desc: "Our daily drip coffee" },
       chemex: { name: "Chemex", desc: "Clean and bright extraction for two" },
-      matcha: { name: "Matcha Latte", desc: "Ceremonial grade matcha with steamed milk" },
-      chai: { name: "Chai Latte", desc: "Spiced black tea blend with steamed milk" },
-      hotChocolate: { name: "Hot Chocolate", desc: "Rich dark chocolate melted into steamed milk" },
-      butterCroissant: { name: "Butter Croissant", desc: "Flaky, buttery, baked fresh daily" },
-      almondCroissant: { name: "Almond Croissant", desc: "Twice baked with almond frangipane" },
-      avocadoToast: { name: "Avocado Toast", desc: "Sourdough, smashed avocado, chili flakes, olive oil" },
+      matcha: {
+        name: "Matcha Latte",
+        desc: "Ceremonial grade matcha with steamed milk",
+      },
+      chai: {
+        name: "Chai Latte",
+        desc: "Spiced black tea blend with steamed milk",
+      },
+      hotChocolate: {
+        name: "Hot Chocolate",
+        desc: "Rich dark chocolate melted into steamed milk",
+      },
+      butterCroissant: {
+        name: "Butter Croissant",
+        desc: "Flaky, buttery, baked fresh daily",
+      },
+      almondCroissant: {
+        name: "Almond Croissant",
+        desc: "Twice baked with almond frangipane",
+      },
+      avocadoToast: {
+        name: "Avocado Toast",
+        desc: "Sourdough, smashed avocado, chili flakes, olive oil",
+      },
     },
   },
 };
@@ -207,7 +277,9 @@ const LanguageContext = createContext<LanguageContextType>({
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
   const [lang, setLang] = useState<Lang>("tr");
   return (
-    <LanguageContext.Provider value={{ lang, setLang, t: allTranslations[lang] }}>
+    <LanguageContext.Provider
+      value={{ lang, setLang, t: allTranslations[lang] }}
+    >
       {children}
     </LanguageContext.Provider>
   );

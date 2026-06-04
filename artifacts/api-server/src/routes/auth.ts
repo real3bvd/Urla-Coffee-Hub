@@ -4,7 +4,8 @@ import { createAdminSession } from "./adminAuth";
 const router: IRouter = Router();
 
 router.post("/auth/login", (req: Request, res: Response) => {
-  const password = typeof req.body?.password === "string" ? req.body.password : "";
+  const password =
+    typeof req.body?.password === "string" ? req.body.password : "";
   const session = createAdminSession(password);
 
   if (!session) {

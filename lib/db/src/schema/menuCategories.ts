@@ -10,6 +10,8 @@ export const menuCategoriesTable = pgTable("menu_categories", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-export const insertMenuCategorySchema = createInsertSchema(menuCategoriesTable).omit({ id: true, createdAt: true });
+export const insertMenuCategorySchema = createInsertSchema(
+  menuCategoriesTable,
+).omit({ id: true, createdAt: true });
 export type InsertMenuCategory = z.infer<typeof insertMenuCategorySchema>;
 export type MenuCategory = typeof menuCategoriesTable.$inferSelect;

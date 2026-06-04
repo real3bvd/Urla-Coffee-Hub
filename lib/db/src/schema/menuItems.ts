@@ -14,6 +14,9 @@ export const menuItemsTable = pgTable("menu_items", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-export const insertMenuItemSchema = createInsertSchema(menuItemsTable).omit({ id: true, createdAt: true });
+export const insertMenuItemSchema = createInsertSchema(menuItemsTable).omit({
+  id: true,
+  createdAt: true,
+});
 export type InsertMenuItem = z.infer<typeof insertMenuItemSchema>;
 export type MenuItem = typeof menuItemsTable.$inferSelect;
